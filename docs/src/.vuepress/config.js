@@ -4,7 +4,7 @@ module.exports = {
   /**
    * Ref：https://v1.vuepress.vuejs.org/config/#title
    */
-  title: 'Vuepress Docs Boilerplate',
+  title: 'Aplicaciones Web Progresivas (PWA)',
   /**
    * Ref：https://v1.vuepress.vuejs.org/config/#description
    */
@@ -34,26 +34,29 @@ module.exports = {
     lastUpdated: false,
     nav: [
       {
-        text: 'Guide',
+        text: 'Guía',
         link: '/guide/',
       },
-      {
+      /* {
         text: 'Config',
         link: '/config/'
-      },
+      }, */
       {
-        text: 'VuePress',
-        link: 'https://v1.vuepress.vuejs.org'
+        text: 'Repositorio',
+        link: 'https://github.com/petrix12/pwa2022.git'
       }
     ],
     sidebar: {
       '/guide/': [
         {
-          title: 'Guide',
+          title: 'Guía',
           collapsable: false,
           children: [
             '',
-            'using-vue',
+            'urls',
+            'docs',
+            'repositorio',
+            'contenido'
           ]
         }
       ],

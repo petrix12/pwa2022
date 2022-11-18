@@ -1,15 +1,8 @@
 ---
 home: true
-heroImage: https://v1.vuepress.vuejs.org/hero.png
+heroImage: https://raw.githubusercontent.com/petrix12/imagenes2022/main/Soluciones%2B%2B/solucionespp.png
 tagline: Todo sobre Aplicaciones Web Progresivas (PWA)
-actionText: Quick Start →
+actionText: Inicio rápido →
 actionLink: /guide/
-features:
-- title: Feature 1 Title
-  details: Feature 1 Description
-- title: Feature 2 Title
-  details: Feature 2 Description
-- title: Feature 3 Title
-  details: Feature 3 Description
 footer: Made by Pedro Bazó with ❤️
 ---
