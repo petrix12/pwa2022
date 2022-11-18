@@ -12,98 +12,106 @@
 
 ### 4. Instalaciones necesarias para seguir el curso
 + [Google Chrome](https://www.google.com/chrome)
-+ [Extensiones de VSC](./recursos/seccion01/extensiones-vsc.pdf)
++ [Extensiones de VSC](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion01/extensiones-vsc.pdf)
 + [Node.js](https://nodejs.org)
 + [Postman](https://www.postman.com)
 + [Visual Studio Code](https://code.visualstudio.com)
 
 ### 5. Instalar Git y configuración básica
 + [Git](https://git-scm.com)
-+ [Configuración básica de git](./recursos/seccion01/git-configuracion-basica.txt)
++ [Configuración básica de git](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion01/git-configuracion-basica.txt)
 
 
 ## Sección 2: Fundamentos de las aplicaciones web progresivas
 ### 6. Introducción a la sección
-1 min
-Iniciar
++ Importancia del Service Worker.
+
 ### 7. Temas puntuales de la sección
-1 min
-Reproducir
++ Esta sección tocaremos temas puntuales sobre:
+    + ¿Por qué construir una PWA?
+    + ¿Cómo funciona?
+    + Conceptos básicos de una PWA
++ Es importante tenerlos presente porque es común perder el enfoque de lo que es una PWA y que es una aplicación híbrida o bien qué diferencia hay con una aplicación nativa.
+
 ### 8. ¿Qué son las aplicaciones web progresivas?
-4 min
-Reproducir
++ Que son y que no son PWA.
+
 ### 9. ¿Por qué construir una PWA?
-6 min
-Reproducir
++ Importancia de las PWA.
+
 ### 10. Conceptos clave de las PWA
-10 min
-Iniciar
++ Ciclo de vida de un Service Worker.
+
 ### 11. Material de la sección
-1 min
-Reproducir
++ [¿Qué son las PWA's?](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion02/1-+que+son+las+pwas.pdf)
++ [¿Por qué construir una PWA?](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion02/2-+Por+que+construir+una+pwa.pdf)
++ [Conceptos clave de las PWA](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion02/3-+Conceptos+clave+de+las+PWA.pdf)
 
 
 ## Sección 3: Reforzamiento Promesas, Fetch API y HttpServer
-12. Introducción a la sección
+### 12. Introducción a la sección
 2 min
 Iniciar
-13. Temas puntuales de la sección
+### 13. Temas puntuales de la sección
 1 min
 Reproducir
-14. Inicio del proyecto y recomendación
+### 14. Inicio del proyecto y recomendación
 7 min
 Reproducir
-15. Promesas 101: Problemática
+### 15. Promesas 101: Problemática
 10 min
 Reproducir
-16. Resolución del problema usando promesas
+### 16. Resolución del problema usando promesas
 8 min
 Reproducir
-17. Manejo de errores en las promesas
+### 17. Manejo de errores en las promesas
 8 min
 Reproducir
-18. Promise All
+### 18. Promise All
 9 min
 Reproducir
-19. Promise Race
+### 19. Promise Race
 5 min
 Iniciar
-20. Material adicional sobre promesas
+### 20. Material adicional sobre promesas
 1 min
 Reproducir
-21. Origenes del Fetch - XMLHttpRequest
+### 21. Origenes del Fetch - XMLHttpRequest
 7 min
 Reproducir
-22. Fetch API
+### 22. Fetch API
 8 min
 Reproducir
-23. Fetch POST / PUT
+### 23. Fetch POST / PUT
 5 min
 Reproducir
-24. Fetch Blob
+### 24. Fetch Blob
 6 min
 Reproducir
-25. Response.clone()
+### 25. Response.clone()
 5 min
 Reproducir
-26. Manejo de respuestas y errores
+### 26. Manejo de respuestas y errores
 5 min
 Reproducir
-27. Leer archivos HTML
+### 27. Leer archivos HTML
 4 min
 Iniciar
-28. Actualización menor
+### 28. Actualización menor
 1 min
 Reproducir
-29. Tarea: Reforzamiento sobre las promesas y fetch
+### 29. Tarea: Reforzamiento sobre las promesas y fetch
 10 min
 Iniciar
-30. Documentaciones adicionales
+### 30. Documentaciones adicionales
 1 min
 Iniciar
-31. Código fuente de la sección
+### 31. Código fuente de la sección
 1 min
 Reproducir
+
+
+## Sección 4: Service Worker y Fetch Event
 32. Introducción a la sección
 3 min
 Iniciar
