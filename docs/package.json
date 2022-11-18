@@ -1,0 +1,19 @@
+{
+  "name": "Curso PTW 2022",
+  "version": "0.0.1",
+  "description": "Todo sobre Aplicaciones Web Progresivas (PWA)",
+  "main": "index.js",
+  "authors": {
+    "name": "Pedro Bazó",
+    "email": "bazo.pedro@gmail.com"
+  },
+  "repository": "https://github.com/petrix12/pwa2022.git/Curso PTW 2022",
+  "scripts": {
+    "dev": "vuepress dev src",
+    "build": "vuepress build src"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "vuepress": "^1.5.3"
+  }
+}
