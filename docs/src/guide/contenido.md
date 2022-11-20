@@ -1,6 +1,6 @@
 
 # Contenido del curso
-## Sección 1: Introdcción
+## Sección 1: Introducción
 ### 1. Introducción
 + Sobre la presentación del curso
 
@@ -50,106 +50,570 @@
 
 ## Sección 3: Reforzamiento Promesas, Fetch API y HttpServer
 ### 12. Introducción a la sección
-2 min
-Iniciar
++ Importacia de dominar las Promesas y los Fetch API.
+
 ### 13. Temas puntuales de la sección
-1 min
-Reproducir
++ Antes de entrar en los temas de las PWAs y comenzar a crearlas, necesito que todos hablemos el mismo idioma sobre los conceptos de las promesas, fetch api y que sepan cómo levantar rápidamente un servidor para probar nuestras aplicaciones.
++ Aquí veremos:
+    + Promesas
+    + Promesas en cadena
+    + Promise.all
+    + Promise.race
+    + Fetch API
+    + Gets
+    + Posts
+    + Fetch de Blobs
+    + http-server
++ Y otros temas importantes para que el curso no lo sientan complicado.
+
 ### 14. Inicio del proyecto y recomendación
-7 min
-Reproducir
++ [npm http-server](https://www.npmjs.com/package/http-server)
++ [index.html base](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion03/index.html)
+1. Crear carpeta **01-fundamentos** como proyecto.
+2. Crear **01-fundamentos\index.html**:
+    ```html
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>Document</title>
+    </head>
+    <body>
+        <h1>Fundamentos</h1>
+    </body>
+    </html>
+    ```
+3. En caso de no disponer de un localhost, instalar servidor:
+    + $ npm install --global http-server
+4. Para levantar el proyecto **01-fundamentos**:
+    + $ cd 01-fundamentos
+    + $ http-server
+        ::: tip Nota
+        En caso de querer indicar el puerto:
+        + $ http-server -p 8081
+        <hr/>
+        :::
+
 ### 15. Promesas 101: Problemática
-10 min
-Reproducir
+1. Crear **01-fundamentos\prom-1.js**:
+    ```js
+    function sumarUno(numero, callback) {
+        if (numero >= 7) {
+            callback('Número muy alto');
+            return;
+        }
+        setTimeout(function() {
+            // return numero + 1;
+            callback(null, numero + 1);
+        }, 800)
+    }
+
+    sumarUno(5, function(error, nuevoValor) {
+        if (error) {
+            console.log(error);
+            return;
+        }
+        sumarUno(nuevoValor, function(error, nuevoValor2) {
+            if (error) {
+                console.log(error);
+                return;
+            }
+            sumarUno(nuevoValor2, function(error, nuevoValor3) {
+                if (error) {
+                    console.log(error);
+                    return;
+                }
+                console.log(nuevoValor3);
+            });
+        });
+    })
+    ```
+    ::: warning Advertencia
+    Esta es una mala práctica de escribir código. Se le conoce como **callback Hell**.
+    El callback Hell se produce cuando encadenamos muchas operaciones asíncronas seguidas.
+    :::
+
 ### 16. Resolución del problema usando promesas
-8 min
-Reproducir
+1. Crear **01-fundamentos\prom-2.js**:
+    ```js
+    function sumarUno(numero) {
+        let promesa = new Promise(function(res, rej) {
+            setTimeout(function() {
+                res(numero + 1);
+            }, 800);
+        });
+
+        return promesa;
+    }
+
+    sumarUno(5).then(nuevoValor => {
+        console.log(nuevoValor)
+        return sumarUno(nuevoValor)
+    }).then(nuevoValor => {
+        console.log(nuevoValor)
+        return sumarUno(nuevoValor)
+    }).then(nuevoValor => {
+        console.log(nuevoValor)
+    })    
+    ```
+    ::: tip Nota
+    Esta es una forma más elegante de resolver el problema anterior.
+    :::
+
 ### 17. Manejo de errores en las promesas
-8 min
-Reproducir
+1. Modificar **01-fundamentos\prom-2.js**:
+    ```js
+    function sumarUno(numero) {
+        console.log(numero);
+        let promesa = new Promise(function(res, rej) {
+            if (numero >= 7) {
+                rej('Número muy alto')
+            }
+            setTimeout(function() {
+                res(numero + 1);
+            }, 800);
+        });
+
+        return promesa;
+    }
+
+    sumarUno(5)
+        .then(sumarUno)
+        .then(sumarUno)
+        .then(console.log)
+        .catch(console.log)    
+    ```
+    ::: tip Nota
+    Esta es una forma aún más elegante de resolver el problema anterior.
+    :::
+
 ### 18. Promise All
-9 min
-Reproducir
+1. Crear **01-fundamentos\prom-3.js**:
+    ```js
+    function sumarLento(numero) {
+        return new Promise(function(res, rej) {
+            setTimeout(function() {
+                res(numero + 1)
+                //rej('Mensaje de error')
+            }, 800)
+        });
+    }
+
+    let sumarRapido = (numero) => {
+        return new Promise((res, rej) => {
+            setTimeout( () => res(numero + 1), 300)
+        });
+    }
+
+    function retornaTrue() {
+        return true;
+    }
+
+    // Manejando promesas de forma independiente
+    sumarLento(5).then(console.log);
+    sumarRapido(10).then(console.log);
+
+    // Manejando promesas de forma simultanea
+    Promise.all([sumarLento(5), sumarRapido(10)])
+        .then(console.log)
+        .catch(console.log)
+
+    let cosas = [sumarLento(5), sumarRapido(10), true, 'Soluciones++', retornaTrue()]
+    Promise.all(cosas)
+        .then(console.log)
+        .catch(console.log);
+    ```
+
 ### 19. Promise Race
-5 min
-Iniciar
+1. Crear **01-fundamentos\prom-4.js**:
+    ```js
+    function sumarLento(numero) {
+        return new Promise(function(res, rej) {
+            setTimeout(function() {
+                res(numero + 1)
+                //rej('Error en sumar lento')
+            }, 800)
+        });
+    }
+
+    let sumarRapido = (numero) => {
+        return new Promise((res, rej) => {
+            setTimeout( () => /* res(numero + 1) */ rej('Error en sumar rápido'), 300)
+        });
+    }
+
+    Promise.race([sumarLento(5), sumarRapido(10)])
+        .then(console.log)
+        .catch(console.log)
+    ```
+    ::: tip Nota
+    Mientras que **Promise.all** regresa todas las promesas, **Promise.race** regresa solamente la primera que se resuelva.
+    :::
+
 ### 20. Material adicional sobre promesas
-1 min
-Reproducir
++ [Estados de las promesas](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion03/estados+de+las+promesas.pdf).
++ **Promesas**: página de Mozilla MDN:
+    + [Promesas](https://developer.mozilla.org/es/docs/Web/JavaScript/Reference/Global_Objects/Promise)
+    + [Promise.all()](https://developer.mozilla.org/es/docs/Web/JavaScript/Reference/Global_Objects/Promise/all)
+    + [Promise.race()](https://developer.mozilla.org/es/docs/Web/JavaScript/Reference/Global_Objects/Promise/race)
++ Hay otros métodos que no se explicaron como el **Promise.resolve()** y **Promise.reject()**, pero cuando sean necesarios se explicaran en los videos respectivos.
+
 ### 21. Origenes del Fetch - XMLHttpRequest
-7 min
-Reproducir
++ [REQRES](https://reqres.in).
+1. Modificar **01-fundamentos\index.html**:
+    ```html
+    <!-- ... -->
+    <body>
+        <!-- ... -->
+        <script src="./fetch-1.js"></script>
+    </body>
+    <!-- ... -->
+    ```
+2. Crear **01-fundamentos\fetch-1.js**:
+    ```js
+    let request = new XMLHttpRequest();
+
+    request.open('GET', 'https://reqres.in/api/users', true);
+    request.send(null);
+
+    request.onreadystatechange = function(state) {
+        if(request.readyState === 4) {
+            let resp = request.response;
+            let respObj = JSON.parse(resp);
+            console.log(respObj);
+        }
+    }
+    ```
+    ::: warning Advertencia
+    Esta es la manera antigua de realizar peticiones http.
+    :::
+
 ### 22. Fetch API
-8 min
-Reproducir
++ [Chrome Cors Plugin](https://chrome.google.com/webstore/search/cors).
++ [Fetch Methods](https://developer.mozilla.org/en-US/docs/Web/API/Response).
+1. Modificar **01-fundamentos\index.html**:
+    ```html
+    <!-- ... -->
+    <body>
+        <!-- ... -->
+        <script src="./fetch-2.js"></script>
+    </body>
+    <!-- ... -->
+    ```
+2. Crear **01-fundamentos\fetch-2.js**:
+    ```js
+    // Petición GET
+    // https://reqres.in/api/users
+
+    fetch('https://reqres.in/api/users')
+        .then(res => res.json())
+        .then(respObj => {
+            console.log(respObj);
+            console.log(respObj.page);
+            console.log(respObj.per_page);
+        })
+    ```
+::: tip
+Ejemplo para vaciar el código de una página, en tú página
+```js
+// Ejemplo para vaciar el código de una página, en tú página
+// Para ejeuctar este código es necesario activar CORS
+fetch('https://www.wikipedia.org')
+    .then(resp => resp.text())
+    .then(html => {
+        document.open();
+        document.write(html);
+        document.close();
+    });
+```
+:::
+
 ### 23. Fetch POST / PUT
-5 min
-Reproducir
++ [REQRES](https://reqres.in).
+1. Modificar **01-fundamentos\index.html**:
+    ```html
+    <!-- ... -->
+    <body>
+        <!-- ... -->
+        <script src="./fetch-3.js"></script>
+    </body>
+    <!-- ... -->
+    ```
+2. Crear **01-fundamentos\fetch-3.js**:
+    ```js
+    // Petición POST
+    // https://reqres.in/api/users
+
+    let usuario = {
+        nombre: 'Pedro',
+        edad: 50
+    }
+
+    fetch('https://reqres.in/api/users', {
+        method: 'POST',
+        body: JSON.stringify(usuario),
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(resp => resp.json())
+    .then(console.log)
+    .catch(err => {
+        console.log('Error en la petición');
+        console.log(err);
+    })
+    ```
+
 ### 24. Fetch Blob
-6 min
-Reproducir
+1. Modificar **01-fundamentos\index.html**:
+    ```html
+    <!-- ... -->
+    <body>
+        <!-- ... -->
+        <img src="" alt="">
+        <script src="./fetch-4.js"></script>
+    </body>
+    <!-- ... -->
+    ```
+2. Crear **01-fundamentos\fetch-4.js**:
+    ```js
+    let img = document.querySelector('img')
+
+    fetch('superman.png')
+        .then(resp => resp.blob())
+        .then(imagen => {
+            let imgPath = URL.createObjectURL(imagen);
+            img.src = imgPath;
+            img.alt = "Supermán";
+        })    
+    ```
+
 ### 25. Response.clone()
-5 min
-Reproducir
+1. Modificar **01-fundamentos\index.html**:
+    ```html
+    <!-- ... -->
+    <body>
+        <h1>Fundamentos</h1>
+        <script src="./fetch-5.js"></script>
+    </body>
+    <!-- ... -->
+    ```
+2. Crear **01-fundamentos\fetch-5.js**:
+    ```js
+    // Petición GET
+    // https://reqres.in/api/users/id
+
+    fetch('https://reqres.in/api/users/1')
+        .then(res => {
+            res.clone().json().then(usuario => {
+                console.log(usuario.data)
+            });
+
+            res.clone().json().then(usuario => {
+                console.log(usuario.data)
+            });
+
+            res.json().then(usuario => {
+                console.log(usuario.data)
+            });
+        })    
+    ```
+
 ### 26. Manejo de respuestas y errores
-5 min
-Reproducir
+1. Modificar **01-fundamentos\fetch-5.js**:
+    ```js
+    // Petición GET
+    // https://reqres.in/api/users/id
+
+    fetch('https://reqres.in/api/users/10000')
+        .then(resp => {
+            if(resp.ok) {
+                return resp.json();
+            } else {
+                // console.log('No existe usuario con ese id');
+                throw new Error('No existe usuario con ese id');
+            }
+        })
+        .then(console.log)
+        .catch(err => {
+            console.log('Error en la petición');
+            console.log(err);
+        })    
+    ```
+
 ### 27. Leer archivos HTML
-4 min
-Iniciar
+1. Modificar **01-fundamentos\index.html**:
+    ```html
+    <!-- ... -->
+    <body>
+        <!-- ... -->
+        <script src="./fetch-6.js"></script>
+    </body>
+    <!-- ... -->
+    ```
+2. Crear **01-fundamentos\no-encontrado.html**:
+    ```html
+    <h1>El archivo no fue encontrado</h1>
+
+    <p>:(</p>    
+    ```
+3. Crear **01-fundamentos\fetch-6.js**:
+    ```js
+    fetch('no-encontrado.html')
+        .then(resp => resp.text())
+        .then(html => {
+            let body = document.querySelector('body');
+            body.innerHTML = html;
+        })
+        .catch(error => {
+            console.log('Error en la petición');
+            console.log(error);
+        })    
+    ```
+
 ### 28. Actualización menor
-1 min
-Reproducir
++ Actualización menor:
+    + API de StarWars https://swapi.dev/api, (en el video el URL dice: https://swapi.co/api)
+
 ### 29. Tarea: Reforzamiento sobre las promesas y fetch
-10 min
-Iniciar
+1. Modificar **01-fundamentos\index.html**:
+    ```html
+    <!-- ... -->
+    <body>
+        <!-- ... -->
+        <script src="./tarea.js"></script>
+    </body>
+    <!-- ... -->
+    ```
+2. Crear **01-fundamentos\tarea.js**:
+    ```js
+    // Tarea sobre promesas y fetch
+    // Realice resolución de cada ejercicio,
+
+    // compruebe el resultado en la consola y posteriormente
+    // siga con el siguiente.
+
+    // Comente TODO el código del ejercicio anterior
+    // antes de continuar con el siguiente.
+
+    // ==============================================
+    // Ejercicio #1
+    // ==============================================
+    /*
+    Realizar un llamado FETCH a la siguiente API
+    https://swapi.dev/api/people/1/
+    Imprima en consola el nombre y género de la persona.
+    */
+
+    // Resolución de la tarea #1
+    fetch('https://swapi.dev/api/people/1')
+        .then(resp => {
+            if(resp.ok) {
+                return resp.json();
+            } else {
+                // console.log('No existe usuario con ese id');
+                throw new Error('No existe usuario con ese id');
+            }
+        })
+        .then((people) => {
+            console.log(people.name)
+            console.log(people.gender)
+        })
+        .catch(err => {
+            console.log('Error en la petición');
+            console.log(err);
+        })    
+
+    // ==============================================
+    // Ejercicio #2
+    // ==============================================
+    /*
+    Similar al ejercicio anterior... haga un llamado a la misma api
+    (puede reutilizar el código )
+    https://swapi.dev/api/people/1/
+    
+    Pero con el nombre y el género, haga un posteo
+    POST a: https://reqres.in/api/users
+
+    Imprima en consola el objeto y asegúrese que tenga
+    el ID y la fecha de creación del objeto
+    */
+
+    // Resolución de la tarea #2
+    let user = {
+        nombre: 'Petrix',
+        gender: 'male'
+    }
+
+    fetch('https://reqres.in/api/users', {
+        method: 'POST',
+        body: JSON.stringify(user),
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(resp => resp.json())
+    .then(console.log)
+    .catch(err => {
+        console.log('Error en la petición');
+        console.log(err);
+    })    
+    ```
+
 ### 30. Documentaciones adicionales
-1 min
-Iniciar
++ [URL - CreateObjectUrl](https://developer.mozilla.org/en-US/docs/Web/API/URL)
++ [XmlHttpRequest](https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/readyState)
++ [Methods del response](https://developer.mozilla.org/en-US/docs/Web/API/Response)
++ [Fetch API](https://developer.mozilla.org/es/docs/Web/API/Fetch_API/Using_Fetch)
+
 ### 31. Código fuente de la sección
-1 min
-Reproducir
++ **[Código fuente de esta sección](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion03/01-fundamentos.zip)**.
 
 
 ## Sección 4: Service Worker y Fetch Event
-32. Introducción a la sección
+### 32. Introducción a la sección
 3 min
 Iniciar
-33. Temas puntuales de la sección
+### 33. Temas puntuales de la sección
 1 min
 Reproducir
-34. Introducción al Service Worker
+### 34. Introducción al Service Worker
 6 min
 Reproducir
-35. Inicio del proyecto - Service Worker básico
+### 35. Inicio del proyecto - Service Worker básico
 6 min
 Reproducir
-36. Instalación del Service Worker
+### 36. Instalación del Service Worker
 10 min
 Reproducir
-37. Service Worker - Fetch Event
+### 37. Service Worker - Fetch Event
 11 min
 Reproducir
-38. Formas válidas para realizar peticiones desde el evento Fetch
+### 38. Formas válidas para realizar peticiones desde el evento Fetch
 6 min
 Reproducir
-39. Modificando la respuesta de la petición Fetch
+### 39. Modificando la respuesta de la petición Fetch
 5 min
 Reproducir
-40. Tarea - Interceptar y modificar peticiones
+### 40. Tarea - Interceptar y modificar peticiones
 3 min
 Reproducir
-41. Manejo de errores en el Fetch Event
+### 41. Manejo de errores en el Fetch Event
 11 min
 Iniciar
-42. Nota: Manejo de errores en el Fetch
+### 42. Nota: Manejo de errores en el Fetch
 1 min
 Iniciar
-43. Código fuente de la sección
+### 43. Código fuente de la sección
 1 min
 Iniciar
-Cuestionario 1: Examen sobre Service Workers
+### Cuestionario 1: Examen sobre Service Workers
 Reproducir
+
+
+## Sección 5: Ciclo de vida de un Service Worker y los listeners más comunes
 44. Introducción a la sección
 1 min
 Iniciar
@@ -482,3 +946,7 @@ Iniciar
 1 min
 Reproducir
 153. Despedida
+
+
+
+https://github.com/petrix12/pwa2022/blob/main/
