@@ -574,78 +574,288 @@ fetch('https://www.wikipedia.org')
 
 ## Sección 4: Service Worker y Fetch Event
 ### 32. Introducción a la sección
-3 min
-Iniciar
++ El papel de del Service Worker en una PWA.
+
 ### 33. Temas puntuales de la sección
-1 min
-Reproducir
++ Resumen puntual de la sección:
+    + Esta sección está enfocada principalmente en el tema del service worker, ¿cómo instalarlo? y ¿qué podemos hacer con él?
+    + También aprenderemos a modificar respuestas que es un tema crucial cuando llegues al tema del manejo del cache y respuestas offline.
+    + Pero se necesita que se comprenda qué puede hacer el service worker y sobre todo, el poder que tiene sobre toda una aplicación web.
+
 ### 34. Introducción al Service Worker
-6 min
-Reproducir
++ Sobre lo que puede hacer el Service Worker.
+
 ### 35. Inicio del proyecto - Service Worker básico
-6 min
-Reproducir
++ [Base del proyecto a desarrollar en esta sección](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion04/02-service-worker.zip).
+1. Crear **02-service-worker\index.html**:
+    ```html
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>Mi PWA</title>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+        <link rel="stylesheet" href="css/style.css">
+    </head>
+    <body class="container p-3">
+        <img src="img/main.jpg" alt="Vías del tren" class="img-fluid">
+        <h1>Bienvenido</h1>
+        <hr>
+        <p>Las PWAs son el siguiente paso a las páginas y aplicaciones web.</p>
+        <p>Cargan sumamente rápido y no necesitan conexión a internet para trabajar</p>
+        <script src="js/app.js"></script>
+    </body>
+    </html>    
+    ```
+2. Crear **02-service-worker\css\style.css**:
+    ```css
+    html, body {
+        height: 100%;
+        background-color: #1D2125;
+    }
+
+    h1, h2, h3, h4, h5 {
+        color: white;
+    }
+
+    hr {
+        background-color: white;
+    }
+
+    p{
+        color: #D1D1D1;
+    }    
+    ```
+
 ### 36. Instalación del Service Worker
-10 min
-Reproducir
++ [Can I use service worker](https://caniuse.com/?search=service%20worker)
+1. Crear **02-service-worker\js\app.js**:
+    ```js
+    // Confirmar si podemos utilizar el Service Worker
+    if (navigator.serviceWorker) {
+        // registar el service worker
+        navigator.serviceWorker.register('./sw.js');
+    }
+    ```
+    ::: tip Distintas formas de confirmar si el navegador acepta Service Worker
+    + Forma 1:
+    ```js
+    if (navigator.serviceWorker) {
+        console.log('Podemos usar aquí el Service Worker');
+    }    
+    ```
+    + Forma 2:
+    ```js
+    if ('serviceWorker' in navigator) {
+        console.log('Podemos usar aquí el Service Worker');
+    }    
+    ```
+    :::
+2. Crear **C:\laragon\www\pwa2022\02-service-worker\sw.js**:
+    ```js
+    console.log('sw s++');
+    ```
+3. Crear **02-service-worker\pages\no-encontrado.html**:
+    ```html
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>Mi PWA</title>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+        <link rel="stylesheet" href="../css/style.css">
+    </head>
+    <body class="container p-3">
+        <h1>No encontrado</h1>
+        <script src="../js/app.js"></script>
+    </body>
+    </html>
+    ```
+
 ### 37. Service Worker - Fetch Event
-11 min
-Reproducir
++ [renombrar-a-.jshintrc.zip](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion04/renombrar-a-.jshintrc.zip)
+1. Modificar **02-service-worker\sw.js**:
+    ```js
+    self.addEventListener('fetch', event => {
+        if(event.request.url.includes('style.css')) {
+            event.respondWith(null);
+        } else {
+            event.respondWith(fetch(event.request));
+        }
+    });    
+    ```
+
 ### 38. Formas válidas para realizar peticiones desde el evento Fetch
-6 min
-Reproducir
+1. Modificar **02-service-worker\sw.js**:
+    ```js
+    self.addEventListener('fetch', event => {
+        if (event.request.url.includes('.jpg')) {
+            console.log(event.request.url);
+            // let fotoReq = fetch('img/main.jpg');
+            // let fotoReq = fetch(event.request.url);
+            let fotoReq = fetch(event.request);
+            event.respondWith(fotoReq);
+        }
+    });    
+    ```
+
 ### 39. Modificando la respuesta de la petición Fetch
-5 min
-Reproducir
++ [MDN Response](https://developer.mozilla.org/es/docs/Web/API/Response).
+1. Modificar **02-service-worker\sw.js**:
+    ```js
+    self.addEventListener('fetch', event => {
+        if (event.request.url.includes('style.css')) {
+            let respuesta = new Response(`
+                body {
+                    background-color: red !important;
+                    color: pink;
+                }
+            `, {
+                headers: {
+                    'Content-Type': 'text/css'
+                }
+            });
+            event.respondWith(respuesta);
+        }
+    });    
+    ```
+
 ### 40. Tarea - Interceptar y modificar peticiones
-3 min
-Reproducir
+1. Modificar **02-service-worker\sw.js**:
+    ```js 
+    self.addEventListener('fetch', event => {
+        if (event.request.url.includes('main.jpg')) {
+            let respuesta = fetch('img/main-patas-arriba.jpg');
+            event.respondWith(respuesta);
+        }
+    });       
+    ```
+
 ### 41. Manejo de errores en el Fetch Event
-11 min
-Iniciar
+1. Modificar **02-service-worker\index.html**:
+    ```html
+    <!-- ... -->
+    <body class="container p-3">
+        <img src="img/imagen-no-existe.jpg" alt="Vías del tren" class="img-fluid">
+        <!-- ... -->
+    </body>
+    <!-- ... -->
+    ```
+2. Modificar **02-service-worker\sw.js**:
+    ```js
+    self.addEventListener('fetch', event => {
+        const resp = fetch(event.request)
+            .then(resp => resp.ok ? resp : fetch('img/main.jpg'))
+            .catch(err => console.log('Error en:', event.request.url))
+
+        event.respondWith(resp);
+    });        
+    ```
+    ::: warning Advertencia
+    Esta solución está incompleta, porque todo error detectado será interpretado por el Service Worker será reemplazado por una imagen.
+    :::
+
 ### 42. Nota: Manejo de errores en el Fetch
-1 min
-Iniciar
++ Hay otras formas de manejar errores que veremos cuando entremos a los temas del Cache.
++ Pero por ahora dejaremos las bases de lo que necesitaremos más adelante.
++ La idea es que poco a poco comencemos a implementar más cosas en nuestro Service Worker y aplicación web
+
 ### 43. Código fuente de la sección
-1 min
-Iniciar
++ **[Código fuente](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion04/02-service-worker-fin.zip)**-
+
 ### Cuestionario 1: Examen sobre Service Workers
-Reproducir
++ Pregunta 1: ¿Qué hace esta instrucción?
+    ```js
+    if ( navigator.serviceWorker ) { .... }
+    ```
+    **Respuesta**: Comprueba si el navegador puede trabajar xon service workers.
++ Pregunta 2: ¿Qué hace el siguiente código?
+    ```js
+    navigator.serviceWorker.register('/sw.js')
+    ```
+    **Respuesta**: Crea o actualiza el registro del service worker.
++ Pregunta 3: ¿El navegador web instalará un nuevo Service Worker si detecta que hubo al menos un simple cambio en el archivo de JavaScript del Service Worker?
+    **Respuesta**: Verdadero.
++ Pregunta 4: ¿Cuando se dispara este evento en el Service Worker?
+    ```js
+    self.addEventListener('fetch', event => { ...
+    ```
+    **Respuesta**: Cuando en la aplicación controlada por el SW recibe una solicitud de red.
++ Pregunta 5: ¿Qué hace el siguiente código?
+    ```js
+    self.addEventListener('fetch', event => {
+        const resp = fetch( event.request );
+        event.respondWith(resp);
+    
+    }); 
+    ```
+    **Respuesta**: Intercepta la petición y el Service Worker solicita la información a la web y esa información es la que envía al navegador web del cliente.
++ Pregunta 6: ¿Qué pasa si ejecutamos muchas veces esta instrucción?
+    ```js
+    if ( navigator.serviceWorker ) {
+        navigator.serviceWorker.register('/sw.js');
+        navigator.serviceWorker.register('/sw.js');
+        navigator.serviceWorker.register('/sw.js');
+        navigator.serviceWorker.register('/sw.js');
+    }
+    ```
+    **Respuesta**: Actualiza el registro del Service Worker 4 veces.
++ Pregunta 7: ¿Qué pasa si el Service Worker se encuentra en este directorio y se registra la instalación así en el app.js que se encuentra en otro directorio?
+    ```js
+    navigator.serviceWorker.register('../pages/sw.js');
+    ```
+    **Respuesta**: El Service Worker tendrá unicamente control sobre lo que sucedad en la carpeta pages.
++ Pregunta 8: ¿El Service Worker actúa como un proxy entre nuestra aplicación y el internet?
+    **Respuesta**: Verdadero.
++ Pregunta 9: ¿El Service Worker puede funcionar en cualquier hosting en internet, que sirva la aplicación usando protocolo HTTP?
+    **Respuesta**: Falso.
++ Pregunta 10: ¿Qué hace esta instrucción en un evento FETCH en el Service Worker?
+    ```js
+    event.respondWith(respuesta);
+    ```
+    **Respuesta**: Responde al nevegador web lo que se encuentra en la respuesta cuando se solicite algún recurso web.
 
 
 ## Sección 5: Ciclo de vida de un Service Worker y los listeners más comunes
-44. Introducción a la sección
+### 44. Introducción a la sección
 1 min
 Iniciar
-45. Temas puntuales de la sección
+### 45. Temas puntuales de la sección
 1 min
 Reproducir
-46. Inicio del proyecto - Ciclo de Vida y Listeners
+### 46. Inicio del proyecto - Ciclo de Vida y Listeners
 2 min
 Reproducir
-47. Service Worker: Install
+### 47. Service Worker: Install
 5 min
 Reproducir
-48. Service Worker: Activate
+### 48. Service Worker: Activate
 4 min
 Reproducir
-49. event.waitUntil( );
+### 49. event.waitUntil( );
 5 min
 Reproducir
-50. Service Worker: Fetch
+### 50. Service Worker: Fetch
 7 min
 Reproducir
-51. Service Worker: Sync
+### 51. Service Worker: Sync
 9 min
 Reproducir
-52. Service Worker: Push
+### 52. Service Worker: Push
 6 min
 Iniciar
-53. Código fuente de la sección
+### 53. Código fuente de la sección
 1 min
 Iniciar
-Cuestionario 2: Examen sobre listeners y ciclo de vida de un Service Worker
+### Cuestionario 2: Examen sobre listeners y ciclo de vida de un Service Worker
 Reproducir
+
+
+## Sección 6: Estrategias de Cache y Offiline Mode
 54. Introducción a la sección
 2 min
 Iniciar
