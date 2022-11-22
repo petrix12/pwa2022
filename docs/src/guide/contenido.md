@@ -756,7 +756,7 @@ fetch('https://www.wikipedia.org')
     });        
     ```
     ::: warning Advertencia
-    Esta solución está incompleta, porque todo error detectado será interpretado por el Service Worker será reemplazado por una imagen.
+    Esta solución está incompleta, porque todo error detectado por el Service Worker será reemplazado por una imagen.
     :::
 
 ### 42. Nota: Manejo de errores en el Fetch
@@ -822,96 +822,394 @@ fetch('https://www.wikipedia.org')
 
 ## Sección 5: Ciclo de vida de un Service Worker y los listeners más comunes
 ### 44. Introducción a la sección
-1 min
-Iniciar
++ Más sobre Service Worker.
+
 ### 45. Temas puntuales de la sección
-1 min
-Reproducir
++ Esta sección tiene un resumen de los principales listeners usado dentro de un service worker, el objetivo es enseñar cómo y en qué momento son invocados, para posteriormente utilizarlos en una aplicación que desarrollaremos, que requiere estos conocimientos.
++ Entre los listeners más comunes están:
+    + fetch
+    + sync
+    + install
+    + activate
+    + push
++ Luego cuando entremos a la sección de push notifications, trabajaremos con otros específicamente relacionados con las interacciones con las notificaciones push, pero por ahora comencemos con estos.
+
 ### 46. Inicio del proyecto - Ciclo de Vida y Listeners
-2 min
-Reproducir
++ [03-service-worker.zip](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion05/03-service-worker.zip).
+1. Crear **03-service-worker\css\style.css**:
+    ```css
+    html, body {
+        height: 100%;
+        background-color: #1D2125;
+    }
+
+    h1,h2,h3,h4,h5 {
+        color: white;
+    }
+
+    hr {
+        background-color: white;
+    }
+
+    p{
+        color: #D1D1D1;
+    }    
+    ```
+2. Crear **03-service-worker\js\app.js**:
+    ```js
+    // Detectar si podemos usar Service Workers
+    if ( navigator.serviceWorker ) {
+        navigator.serviceWorker.register('./sw.js');
+    }    
+    ```    
+3. Crear **03-service-worker\index.html**:
+    ```html
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>Mi PWA</title>
+
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+        <link rel="stylesheet" href="css/style.css">
+    </head>
+    <body class="container p-3">
+        <img src="img/main.jpg" alt="Vías del tren" class="img-fluid">
+        
+        <h1>Bienvenido</h1>
+        <hr>
+
+        <p>Las PWAs son el siguiente paso a las páginas y aplicaciones web.</p>
+        <p>Cargan sumamente rápido y no necesitan conexión a internet para trabajar</p>
+        <script src="js/app.js"></script>
+    </body>
+    </html>    
+    ```
+
 ### 47. Service Worker: Install
-5 min
-Reproducir
+1. Crear **03-service-worker\sw.js**:
+    ```js
+    // Ciclo de vida del SW
+
+    self.addEventListener('install', event => {
+        // Descargar assets
+        // Crear cache
+        console.log('SW: Instalando');
+    });    
+    ```
+
 ### 48. Service Worker: Activate
-4 min
-Reproducir
+1. Modificar **03-service-worker\sw.js**:
+    ```js
+    // Ciclo de vida del SW
+
+    self.addEventListener('install', event => {
+        // Descargar assets
+        // Crear cache
+        console.log('SW: Instalado');
+        // self.skipWaiting();
+    });
+
+    // Cuando el SW toma el control de la aplicación
+    self.addEventListener('activate', event => {
+        // Borrar cache antiguo
+        console.log('SW: Activo y listo para controlar la app');
+    });
+    ```
+
 ### 49. event.waitUntil( );
-5 min
-Reproducir
+1. Modificar **03-service-worker\sw.js**:
+    ```js
+    // Ciclo de vida del SW
+
+    self.addEventListener('install', event => {
+        // Descargar assets
+        // Crear cache
+        console.log('SW: Instalado');
+
+        const instalacion = new Promise((res, rej) => {
+            setTimeout(() => {
+                console.log('SW: Instalaciones terminadas');
+                self.skipWaiting();
+                res();
+            }, 1000)
+        })
+
+        event.waitUntil(instalacion);
+        // self.skipWaiting();
+    });
+
+    // Cuando el SW toma el control de la aplicación
+    self.addEventListener('activate', event => {
+        // Borrar cache antiguo
+        console.log('SW: Activo y listo para controlar la app');
+    });    
+    ```
+
 ### 50. Service Worker: Fetch
-7 min
-Reproducir
+1. Modificar **03-service-worker\js\app.js**:
+    ```js
+    // Detectar si podemos usar Service Workers
+    if ( navigator.serviceWorker ) {
+        navigator.serviceWorker.register('./sw.js');
+    }
+
+    fetch('https://reqres.in/api/users')
+        .then(resp => resp.text())
+        .then(console.log);    
+    ```
+2. Modificar **03-service-worker\sw.js**:
+    ```js
+    // Ciclo de vida del SW
+
+    self.addEventListener('install', event => {
+        // Descargar assets
+        // Crear cache
+        console.log('SW: Instalado');
+
+        const instalacion = new Promise((res, rej) => {
+            setTimeout(() => {
+                console.log('SW: Instalaciones terminadas');
+                self.skipWaiting();
+                res();
+            }, 1)
+        })
+
+        event.waitUntil(instalacion);
+        // self.skipWaiting();
+    });
+
+    // Cuando el SW toma el control de la aplicación
+    self.addEventListener('activate', event => {
+        // Borrar cache antiguo
+        console.log('SW: Activo y listo para controlar la app');
+    });
+
+    // FETCH: Manejo de peticiones HTTP
+    self.addEventListener('fetch', event => {
+        // Aplicar estrategias del cache
+        console.log('SW', event.request.url);
+        if (event.request.url.includes('https://reqres.in/')) {
+            const resp = new Response(`{ ok: false, message: 'json interceptado' }`);
+            event.respondWith(resp);
+        }
+    });    
+    ```
+
 ### 51. Service Worker: Sync
-9 min
-Reproducir
++ [Can I use syncmanager](https://caniuse.com/?search=syncmanager).
+1. Modificar **03-service-worker\js\app.js**:
+    ```js
+    // Detectar si podemos usar Service Workers
+    if ( navigator.serviceWorker ) {
+        navigator.serviceWorker.register('./sw.js')
+            .then(req => {
+                setTimeout(() => {
+                    req.sync.register('posteo-nodejs');
+                    console.log('Se enviaron post sobre node.js al server')
+                }, 3000)
+            });
+    }
+
+    //if (window.SyncManager) {}  
+    ```
+2. Modificar **03-service-worker\sw.js**:
+    ```js
+    // Ciclo de vida del SW
+
+    self.addEventListener('install', event => {
+        // Descargar assets
+        // Crear cache
+        console.log('SW: Instalado');
+
+        const instalacion = new Promise((res, rej) => {
+            setTimeout(() => {
+                console.log('SW: Instalaciones terminadas');
+                self.skipWaiting();
+                res();
+            }, 1)
+        })
+
+        event.waitUntil(instalacion);
+        // self.skipWaiting();
+    });
+
+    // Cuando el SW toma el control de la aplicación
+    self.addEventListener('activate', event => {
+        // Borrar cache antiguo
+        console.log('SW: Activo y listo para controlar la app');
+    });
+
+    // FETCH: Manejo de peticiones HTTP
+    self.addEventListener('fetch', event => {
+        // Aplicar estrategias del cache
+        /* console.log('SW', event.request.url);
+        if (event.request.url.includes('https://reqres.in/')) {
+            const resp = new Response(`{ ok: false, message: 'json interceptado' }`);
+            event.respondWith(resp);
+        } */
+    });
+
+    // SYNC: Recuperación de la conexión a internet
+    self.addEventListener('sync', event => {
+        console.log('Tenemos conexión');
+        console.log(event);
+        console.log(event.tag);
+    });    
+    ```
+
 ### 52. Service Worker: Push
-6 min
-Iniciar
+1. Modificar **03-service-worker\js\app.js**:
+    ```js
+    // Detectar si podemos usar Service Workers
+    if ( navigator.serviceWorker ) {
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => {
+                Notification.requestPermission().then(result => {
+                    console.log(result);
+                    reg.showNotification('Soluciones++');
+                });
+            });
+    }
+    ```
+2. Modificar **03-service-worker\sw.js**:
+    ```js
+    // Ciclo de vida del SW
+
+    self.addEventListener('install', event => {
+        // Descargar assets
+        // Crear cache
+        console.log('SW: Instalado');
+
+        const instalacion = new Promise((res, rej) => {
+            setTimeout(() => {
+                console.log('SW: Instalaciones terminadas');
+                self.skipWaiting();
+                res();
+            }, 1)
+        })
+
+        event.waitUntil(instalacion);
+        // self.skipWaiting();
+    });
+
+    // Cuando el SW toma el control de la aplicación
+    self.addEventListener('activate', event => {
+        // Borrar cache antiguo
+        console.log('SW: Activo y listo para controlar la app');
+    });
+
+    // FETCH: Manejo de peticiones HTTP
+    self.addEventListener('fetch', event => {
+        // Aplicar estrategias del cache
+        /* console.log('SW', event.request.url);
+        if (event.request.url.includes('https://reqres.in/')) {
+            const resp = new Response(`{ ok: false, message: 'json interceptado' }`);
+            event.respondWith(resp);
+        } */
+    });
+
+    // SYNC: Recuperación de la conexión a internet
+    self.addEventListener('sync', event => {
+        console.log('Tenemos conexión');
+        console.log(event);
+        console.log(event.tag);
+    });
+
+    // PUSH: Manejar las push notifications
+    self.addEventListener('push', event => {
+        console.log('Notificación recibida');
+    });    
+    ```
+
 ### 53. Código fuente de la sección
-1 min
-Iniciar
++ **[Código fuente](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion05/03-service-worker-fin.zip)**.
+
+
 ### Cuestionario 2: Examen sobre listeners y ciclo de vida de un Service Worker
-Reproducir
++ Pregunta 1: ¿Qué hace el siguiente código?
+    ```js
+    Notification.requestPermission()
+    ```
+    + Respuesta: Simplemente pide permiso al usuario de recibir notificaciones.
++ Pregunta 2: En este listener del Service Worker, aparte de interceptar peticiones, ¿Qué es lo más común que se realiza aquí?
+    ```js
+    self.addEventListener('fetch', event => { /* ... */});
+    ```
+    + Respuesta: Aplicar las estrategias del cache.
++ Pregunta 3: ¿Cuál listener es el encargado de recibir notificaciones?
+    + Respuesta: push
++ Pregunta 4: ¿Qué hace el event.waitUntil?
+    ```js
+    event.waitUntil( .... );
+    ```
+    + Respuesta: Espera a que el listener resuelva la promesa o tarea que se encuentra en los ....
++ Pregunta 5: ¿Cuales son los pasos que suceden cuando NO existe un Service Worker previo?
+    + Respuesta: Se registra, descarga, instala y activa.
 
 
 ## Sección 6: Estrategias de Cache y Offiline Mode
-54. Introducción a la sección
+### 54. Introducción a la sección
 2 min
 Iniciar
-55. Temas puntuales de la sección
+### 55. Temas puntuales de la sección
 1 min
 Reproducir
-56. Inicio del proyecto y respuesta offline básica
+### 56. Inicio del proyecto y respuesta offline básica
 8 min
 Reproducir
-57. Respuesta offline HTML String
+### 57. Respuesta offline HTML String
 8 min
 Reproducir
-58. Introducción al cache storage
+### 58. Introducción al cache storage
 17 min
 Reproducir
-59. Guardar el APP SHELL a la hora de instalar SW
+### 59. Guardar el APP SHELL a la hora de instalar SW
 10 min
 Reproducir
-60. Estrategia: Cache Only
+### 60. Estrategia: Cache Only
 7 min
 Reproducir
-61. Estrategia: Cache with network fallback
+### 61. Estrategia: Cache with network fallback
 12 min
 Reproducir
-62. Cache dinámico - Optimizaciones
+### 62. Cache dinámico - Optimizaciones
 10 min
 Reproducir
-63. Limitar el cache dinámico
+### 63. Limitar el cache dinámico
 14 min
 Reproducir
-64. Estrategia: Network with cache fallback
+### 64. Estrategia: Network with cache fallback
 11 min
 Reproducir
-65. Estrategia: Cache with network update
+### 65. Estrategia: Cache with network update
 9 min
 Reproducir
-66. Estrategia: Cache y Network Race
+### 66. Estrategia: Cache y Network Race
 12 min
 Reproducir
-67. Navegación offline con página personalizada de error
+### 67. Navegación offline con página personalizada de error
 9 min
 Reproducir
-68. Mostrar la página offline si no existe la petición en cache
+### 68. Mostrar la página offline si no existe la petición en cache
 7 min
 Reproducir
-69. Borrando versiones viejas del cache
+### 69. Borrando versiones viejas del cache
 8 min
 Iniciar
-Cuestionario 3: Examen sobre el cache
+### Cuestionario 3: Examen sobre el cache
 Iniciar
-70. Código fuente de la sección
+### 70. Código fuente de la sección
 1 min
 Iniciar
-71. Documentaciones adicionales
+### 71. Documentaciones adicionales
 1 min
 Reproducir
+
+
+## Sección 7: Despliegue a dispositivos
 72. Introducción a la sección
 2 min
 Iniciar
