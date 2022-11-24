@@ -1133,128 +1133,1344 @@ fetch('https://www.wikipedia.org')
     ```js
     Notification.requestPermission()
     ```
-    + Respuesta: Simplemente pide permiso al usuario de recibir notificaciones.
+    **Respuesta**: Simplemente pide permiso al usuario de recibir notificaciones.
 + Pregunta 2: En este listener del Service Worker, aparte de interceptar peticiones, ¿Qué es lo más común que se realiza aquí?
     ```js
     self.addEventListener('fetch', event => { /* ... */});
     ```
-    + Respuesta: Aplicar las estrategias del cache.
+    **Respuesta**: Aplicar las estrategias del cache.
 + Pregunta 3: ¿Cuál listener es el encargado de recibir notificaciones?
-    + Respuesta: push
+    **Respuesta**: push
 + Pregunta 4: ¿Qué hace el event.waitUntil?
     ```js
     event.waitUntil( .... );
     ```
-    + Respuesta: Espera a que el listener resuelva la promesa o tarea que se encuentra en los ....
+    **Respuesta**: Espera a que el listener resuelva la promesa o tarea que se encuentra en los ....
 + Pregunta 5: ¿Cuales son los pasos que suceden cuando NO existe un Service Worker previo?
-    + Respuesta: Se registra, descarga, instala y activa.
+    **Respuesta**: Se registra, descarga, instala y activa.
 
 
 ## Sección 6: Estrategias de Cache y Offiline Mode
 ### 54. Introducción a la sección
-2 min
-Iniciar
++ Sobre estrategias del cache para construir aplicaciones que soporten un internet inestable.
+
 ### 55. Temas puntuales de la sección
-1 min
-Reproducir
++ Resumen puntual de la sección:
+    + Este es quizá, el tema más importante después del service worker, para una PWA. Es vital saber cómo funcionará nuestra aplicación para poder aplicar una estrategia del manejo del cache eficiente que sirva para brindarle al usuario final la mejor experiencia posible.
+    + Aquí aprenderemos a trabajar cuando nuestra aplicación no tiene conexión a internet y cómo podemos servir archivos, inclusive si estos nunca se han cargado en el HTML, tengan presente que aunque existen estrategias explícitas, no quiere decir que no podamos personalizarlas para trabajarlas para que se adapten mejor a nuestras necesidades.
+    + Aquí aprenderemos 5 estrategias comunes y luego implementaremos una mezcla para poder resolver a las necesidades particulares de nuestra aplicación
+
 ### 56. Inicio del proyecto y respuesta offline básica
-8 min
-Reproducir
++ **[04-cache-offline-inicio.zip](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion06/04-cache-offline-inicio.zip)**.
+1. Crear **04-cache-offline\index.html**:
+    ```html
+    <!DOCTYPE html>
+    <html lang="extends">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>Mi PWA</title>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+        <link rel="stylesheet" href="css/style.css">
+    </head>
+    <body class="container p-3">
+        <img src="img/main.jpg" alt="Vías del tren" class="img-fluid">
+        <h1>Bienvenido</h1>
+        <hr>
+
+        <p>Las PWAs son el siguiente paso a las página</p>
+        <p>Cargan sumamente rápido y no necesitan conexión a internet para trabajar</p>
+
+        <script src="js/app.js"></script>
+    </body>
+    </html>    
+    ```
+2. Crear **04-cache-offline\js\app.js**:
+    ```js
+    if ( navigator.serviceWorker ) {
+        navigator.serviceWorker.register('./sw.js');
+    }    
+    ```
+3. Crear **04-cache-offline\css\style.css**:
+    ```css
+    html, body {
+        height: 100%;
+        background-color: #1D2125;
+    }
+
+    h1,h2,h3,h4,h5 {
+        color: white;
+    }
+
+    hr {
+        background-color: white;
+    }
+
+    p{
+        color: #D1D1D1;
+    }    
+    ```
+4. Crear **04-cache-offline\sw.js**:
+    ```js
+    self.addEventListener('fetch', event => {
+        // Para cada petición fetch regresa justo lo que se está solicitando
+        // Pero será el Service Worker quién haga la petición
+        // event.respondWith(fetch(event.request));
+
+        // Ahora previendo que pueda fallar el request
+        const offlineResponse = new Response(`
+            Bienvenido a Soluciones++
+            Se requiere internet para ver esta página
+        `);
+        const resp = fetch(event.request)
+            .catch(() => offlineResponse);
+        event.respondWith(resp);
+    });    
+    ```
+
 ### 57. Respuesta offline HTML String
-8 min
-Reproducir
+1. Modificar **04-cache-offline\sw.js**:
+    ```js
+    self.addEventListener('fetch', event => {
+        const offlineResponse = new Response(`
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <meta http-equiv="X-UA-Compatible" content="ie=edge">
+                <title>Mi PWA</title>
+            </head>
+            <body class="container p-3">
+                <h1>Bienvenido a Soluciones++</h1>
+                <p>Se requiere internet para ver esta página</p>
+            </body>
+            </html>        
+        `, {
+            headers: {
+                'Content-Type': 'text/html'
+            }
+        });
+
+        const resp = fetch(event.request)
+            .catch(() => offlineResponse);
+        event.respondWith(resp);
+    });    
+    ```
+
+2. Crear **04-cache-offline\pages\offline.html**:
+    ```html
+    <!DOCTYPE html>
+    <html lang="extends">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>Mi PWA</title>
+        <!-- <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous"> -->
+        <!-- <link rel="stylesheet" href="css/style.css"> -->
+    </head>
+    <body class="container p-3">
+        <!-- <img src="img/main.jpg" alt="Vías del tren" class="img-fluid"> -->
+        <h1>Bienvenido a Soluciones++ (Offline)</h1>
+        <hr>
+
+        <p>Se requiere internet para ver esta página</p>
+
+        <!-- <script src="js/app.js"></script> -->
+    </body>
+    </html>    
+    ```
+3. Volver a Modificar **04-cache-offline\sw.js**:
+    ```js
+    self.addEventListener('fetch', event => {
+        const offlineResponse = fetch('./pages/offline.html');
+
+        const resp = fetch(event.request)
+            .catch(() => offlineResponse);
+        event.respondWith(resp);
+    });    
+    ```
+    ::: warning Advertencia
+    El último código escrito en el **sw.js** va a fallar, ya que se requieren de estrategias del cache para lograr renderizar la página **offline.html**.
+    :::
+
 ### 58. Introducción al cache storage
-17 min
-Reproducir
++ **[CacheStorage](https://developer.mozilla.org/en-US/docs/Web/API/CacheStorage)**.
+1. Modificar **04-cache-offline\js\app.js**:
+    ```js
+    if ( navigator.serviceWorker ) {
+        navigator.serviceWorker.register('./sw.js');
+    }
+
+    if (window.caches) {
+        // Crear cache
+        caches.open('prueba-1');
+        caches.open('prueba-2');
+
+        // Verificar si existe un cache
+        caches.has('prueba-3')
+            .then(existe => console.log(existe));
+
+        // Borrar cache
+        caches.delete('prueba-2')
+            .then(console.log);
+
+        
+        // Manipulación de cache
+        caches.open('caches-v1.1')
+            .then(cache => {
+                //cache.add('/index.html');
+
+                cache.addAll([
+                    './index.html',
+                    './css/style.css',
+                    './img/main.jpg'
+                ]).then(() => {
+                    // eliminar estilo
+                    cache.delete('/css/style.css');
+                    // modificar el index
+                    cache.put('index.html', new Response(`
+                        Soluciones++
+                    `));
+                });
+
+                // Preguntar si existe un archivo
+                cache.match('./index.html')
+                    .then(res => {
+                        res.text().then(console.log);
+                    });
+            });
+
+        // Obtener todos los caches
+        caches.keys().then(keys => console.log(keys));
+    }    
+    ```
+
 ### 59. Guardar el APP SHELL a la hora de instalar SW
-10 min
-Reproducir
+1. Modificar **04-cache-offline\js\app.js**:
+    ```js
+    if ( navigator.serviceWorker ) {
+        navigator.serviceWorker.register('./sw.js');
+    }    
+    ```
+2. Renombrar **04-cache-offline\sw.js** a **04-cache-offline\sw-basico.js**.
+3. Crear nuevamente **Modificar **04-cache-offline\sw.js**:
+    ```js
+    self.addEventListener('install', e => {
+        // Creación del cache
+        const cachePromise = caches.open('cache-1')
+            .then(cache => {
+                return cache.addAll([
+                    './index.html',
+                    './css/style.css',
+                    './img/main.jpg',
+                    './js/app.js',
+                    'https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css'
+                ]);
+            });
+        
+        // Parar el resto del proceso hasta que el cache esté cargado
+        e.waitUntil(cachePromise);
+    });
+    ```
+::: tip Nota
+El APP SHELL esto lo necesario que necesita una aplicación para que funcione, como los archivos de estilos, los archivos de script y las imagenes, en otras palabras, todos los recursos principales requeridos por la aplicación.
+:::
+4. Modificar **04-cache-offline\index.html**:
+    ```html
+    <!-- ... -->
+    <head>
+        <!-- ... -->
+        <title>Mi PWA</title>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" >
+        <link rel="stylesheet" href="css/style.css">
+    </head>
+    <!-- ... -->
+    ```
+
 ### 60. Estrategia: Cache Only
-7 min
-Reproducir
+1. Modificar **04-cache-offline\sw.js**:
+    ```js
+    self.addEventListener('install', e => {
+        // Creación del cache
+        const cachePromise = caches.open('cache-1')
+            .then(cache => {
+                return cache.addAll([
+                    './',
+                    './index.html',
+                    './css/style.css',
+                    './img/main.jpg',
+                    './js/app.js',
+                    'https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css'
+                ]);
+            });
+        
+        // Parar el resto del proceso hasta que el cache esté cargado
+        e.waitUntil(cachePromise);
+    });
+
+    self.addEventListener('fetch', e => {
+        // ESTRATEGIAS DEL CACHE
+
+        // 1. Cache Only: usada cuando se quiere que toda la aplicación sea servida desde el cache
+        e.respondWith(caches.match(e.request));
+    });    
+    ```
+
+
+
 ### 61. Estrategia: Cache with network fallback
-12 min
-Reproducir
+1. Modificar **04-cache-offline\sw.js**:
+    ```js
+    const CACHE_NAME = 'cache-1';
+
+    self.addEventListener('install', e => {
+        // Creación del cache
+        const cachePromise = caches.open(CACHE_NAME)
+            .then(cache => {
+                return cache.addAll([
+                    './',
+                    './index.html',
+                    './css/style.css',
+                    './img/main.jpg',
+                    './js/app.js',
+                    'https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css'
+                ]);
+            });
+        
+        // Parar el resto del proceso hasta que el cache esté cargado
+        e.waitUntil(cachePromise);
+    });
+
+    self.addEventListener('fetch', e => {
+        // ESTRATEGIAS DEL CACHE
+
+        // 1. Cache Only: usada cuando se quiere que toda la aplicación sea servida desde el cache
+        // e.respondWith(caches.match(e.request));
+
+        // 2. Cache with network fallback: busca primero en el cache, y si no lo encuentra va a internet
+        const respuestaCache = caches.match(e.request)
+            .then(res => {
+                // Si existe en cache, entonces retorna el recurso
+                if(res) return res;
+
+                // Si no existe en cache, entonces lo busca en internet
+                console.log('No existe', e.request.url);
+                return fetch(e.request)
+                    .then(newRes => {
+                        caches.open(CACHE_NAME)
+                            .then(cache => {
+                                cache.put(e.request, newRes);
+                            });
+                        return newRes.clone();
+                    });
+            });
+
+        e.respondWith(respuestaCache);
+    });    
+    ```
+
 ### 62. Cache dinámico - Optimizaciones
-10 min
-Reproducir
+1. Modificar **04-cache-offline\sw.js**:
+    ```js
+    // const CACHE_NAME = 'cache-1';
+    const CACHE_STATIC_NAME = 'static-v1';
+    const CACHE_DYNAMIC_NAME = 'dynamic-v1';
+    const CACHE_INMUTABLE_NAME = 'inmutable-v1';
+
+    self.addEventListener('install', e => {
+        // Creación del cache estático
+        const cacheStatic = caches.open(CACHE_STATIC_NAME)
+            .then(cache => {
+                return cache.addAll([
+                    './',
+                    './index.html',
+                    './css/style.css',
+                    './img/main.jpg',
+                    './js/app.js'
+                ]);
+            });
+
+
+        // Creación del cache inmutable
+        const cacheInmutable = caches.open(CACHE_INMUTABLE_NAME)
+            .then(cache => {
+                return cache.addAll([
+                    'https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css'
+                ]);
+            });        
+        
+        // Parar el resto del proceso hasta que el cache esté cargado
+        e.waitUntil(Promise.all([cacheStatic, cacheInmutable]));
+    });
+
+    self.addEventListener('fetch', e => {
+        // ESTRATEGIAS DEL CACHE
+
+        // 1. Cache Only: usada cuando se quiere que toda la aplicación sea servida desde el cache
+        // e.respondWith(caches.match(e.request));
+
+        // 2. Cache with network fallback: busca primero en el cache, y si no lo encuentra va a internet
+        const respuestaCache = caches.match(e.request)
+            .then(res => {
+                // Si existe en cache, entonces retorna el recurso
+                if(res) return res;
+
+                // Si no existe en cache, entonces lo busca en internet
+                console.log('No existe', e.request.url);
+                return fetch(e.request)
+                    .then(newRes => {
+                        caches.open(CACHE_DYNAMIC_NAME)
+                            .then(cache => {
+                                cache.put(e.request, newRes);
+                            });
+                        return newRes.clone();
+                    });
+            });
+
+        e.respondWith(respuestaCache);
+    });
+    ```
+
 ### 63. Limitar el cache dinámico
-14 min
-Reproducir
+1. Modificar **04-cache-offline\index.html**:
+    ```html
+    <!DOCTYPE html>
+    <html lang="extends">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>Mi PWA</title>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" >
+        <link rel="stylesheet" href="css/style.css">
+    </head>
+    <body class="container p-3">
+        <img src="img/main.jpg" alt="Vías del tren" class="img-fluid">
+        <img src="https://cdn.pixabay.com/photo/2016/11/19/15/32/code-1839877_960_720.jpg" alt="Vías del tren" class="img-fluid">
+        <img src="https://cdn.pixabay.com/photo/2021/08/04/13/06/software-developer-6521720_960_720.jpg" alt="Vías del tren" class="img-fluid">
+        <img src="https://cdn.pixabay.com/photo/2016/11/19/14/16/man-1839500_960_720.jpg" alt="Vías del tren" class="img-fluid">
+        <img src="https://cdn.pixabay.com/photo/2018/08/10/15/43/woman-3597095_960_720.jpg" alt="Vías del tren" class="img-fluid">
+        <img src="https://cdn.pixabay.com/photo/2015/12/04/14/05/code-1076536_960_720.jpg" alt="Vías del tren" class="img-fluid">
+        <img src="https://cdn.pixabay.com/photo/2015/09/05/20/02/coding-924920_960_720.jpg" alt="Vías del tren" class="img-fluid">
+        <img src="https://cdn.pixabay.com/photo/2017/08/10/08/47/laptop-2620118_960_720.jpg" alt="Vías del tren" class="img-fluid">
+        <img src="https://cdn.pixabay.com/photo/2017/09/26/15/13/computer-2788918_960_720.jpg" alt="Vías del tren" class="img-fluid">
+        <img src="https://cdn.pixabay.com/photo/2020/04/08/15/50/tv-5017870_960_720.jpg" alt="Vías del tren" class="img-fluid">
+        <img src="https://cdn.pixabay.com/photo/2013/04/10/10/35/fire-102450_960_720.jpg" alt="Vías del tren" class="img-fluid">
+        <h1>Bienvenido</h1>
+        <hr>
+
+        <p>Las PWAs son el siguiente paso a las página</p>
+        <p>Cargan sumamente rápido y no necesitan conexión a internet para trabajar</p>
+
+        <script src="js/app.js"></script>
+    </body>
+    </html>    
+    ```
+2. Modificar **04-cache-offline\sw.js**:
+    ```js
+    // const CACHE_NAME = 'cache-1';
+    const CACHE_STATIC_NAME = 'static-v2';
+    const CACHE_DYNAMIC_NAME = 'dynamic-v1';
+    const CACHE_INMUTABLE_NAME = 'inmutable-v1';
+
+    function limpiarCache( cacheName, numeroItems ) {
+        caches.open( cacheName )
+            .then( cache => {
+                return cache.keys()
+                    .then( keys => {
+                        if ( keys.length > numeroItems ) {
+                            cache.delete(keys[0])
+                                .then(limpiarCache(cacheName, numeroItems));
+                        }
+                    });            
+            });
+    }
+
+    self.addEventListener('install', e => {
+        // Creación del cache estático
+        const cacheStatic = caches.open(CACHE_STATIC_NAME)
+            .then(cache => {
+                return cache.addAll([
+                    './',
+                    './index.html',
+                    './css/style.css',
+                    './img/main.jpg',
+                    './js/app.js'
+                ]);
+            });
+
+
+        // Creación del cache inmutable
+        const cacheInmutable = caches.open(CACHE_INMUTABLE_NAME)
+            .then(cache => {
+                return cache.addAll([
+                    'https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css'
+                ]);
+            });        
+        
+        // Parar el resto del proceso hasta que el cache esté cargado
+        e.waitUntil(Promise.all([cacheStatic, cacheInmutable]));
+    });
+
+    self.addEventListener('fetch', e => {
+        // ESTRATEGIAS DEL CACHE
+
+        // 1. Cache Only: usada cuando se quiere que toda la aplicación sea servida desde el cache
+        // e.respondWith(caches.match(e.request));
+
+        // 2. Cache with network fallback: busca primero en el cache, y si no lo encuentra va a internet
+        const respuestaCache = caches.match(e.request)
+            .then(res => {
+                // Si existe en cache, entonces retorna el recurso
+                if(res) return res;
+
+                // Si no existe en cache, entonces lo busca en internet
+                console.log('No existe', e.request.url);
+                return fetch(e.request)
+                    .then(newRes => {
+                        caches.open(CACHE_DYNAMIC_NAME)
+                            .then(cache => {
+                                cache.put(e.request, newRes);
+                                limpiarCache(CACHE_DYNAMIC_NAME, 50);
+                            });
+                        return newRes.clone();
+                    });
+            });
+
+        e.respondWith(respuestaCache);
+    });    
+    ```
+
 ### 64. Estrategia: Network with cache fallback
-11 min
-Reproducir
+1. Modificar **04-cache-offline\sw.js**:
+    ```js
+    // const CACHE_NAME = 'cache-1';
+    const CACHE_STATIC_NAME = 'static-v2';
+    const CACHE_DYNAMIC_NAME = 'dynamic-v1';
+    const CACHE_INMUTABLE_NAME = 'inmutable-v1';
+    const CACHE_DYNAMIC_LIMIT = 50;
+
+    function limpiarCache( cacheName, numeroItems ) {
+        caches.open( cacheName )
+            .then( cache => {
+                return cache.keys()
+                    .then( keys => {
+                        if ( keys.length > numeroItems ) {
+                            cache.delete(keys[0])
+                                .then(limpiarCache(cacheName, numeroItems));
+                        }
+                    });            
+            });
+    }
+
+    self.addEventListener('install', e => {
+        // Creación del cache estático
+        const cacheStatic = caches.open(CACHE_STATIC_NAME)
+            .then(cache => {
+                return cache.addAll([
+                    './',
+                    './index.html',
+                    './css/style.css',
+                    './img/main.jpg',
+                    './js/app.js'
+                ]);
+            });
+
+
+        // Creación del cache inmutable
+        const cacheInmutable = caches.open(CACHE_INMUTABLE_NAME)
+            .then(cache => {
+                return cache.addAll([
+                    'https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css'
+                ]);
+            });        
+        
+        // Parar el resto del proceso hasta que el cache esté cargado
+        e.waitUntil(Promise.all([cacheStatic, cacheInmutable]));
+    });
+
+    self.addEventListener('fetch', e => {
+        // ESTRATEGIAS DEL CACHE
+
+        // 1. Cache Only: usada cuando se quiere que toda la aplicación sea servida desde el cache
+        // e.respondWith(caches.match(e.request));
+
+        // 2. Cache with network fallback: busca primero en el cache, y si no lo encuentra va a internet
+        /* const respuestaCache = caches.match(e.request)
+            .then(res => {
+                // Si existe en cache, entonces retorna el recurso
+                if(res) return res;
+
+                // Si no existe en cache, entonces lo busca en internet
+                console.log('No existe', e.request.url);
+                return fetch(e.request)
+                    .then(newRes => {
+                        caches.open(CACHE_DYNAMIC_NAME)
+                            .then(cache => {
+                                cache.put(e.request, newRes);
+                                limpiarCache(CACHE_DYNAMIC_NAME, CACHE_DYNAMIC_LIMIT);
+                            });
+                        return newRes.clone();
+                    });
+            });
+
+        e.respondWith(respuestaCache); */
+
+        // 3. Cache with network update
+        const respuestaNetwork = fetch(e.request)
+            .then(res => {
+                if (!res) return caches.match(e.request);
+                // console.log('Fetch', res);
+                caches.open(CACHE_DYNAMIC_NAME)
+                    .then(cache => {
+                        cache.put(e.request, res);
+                        limpiarCache(CACHE_DYNAMIC_NAME, CACHE_DYNAMIC_LIMIT);
+                    });
+
+                return res.clone();
+            })
+            .catch(err => {
+                return caches.match(e.request);
+            });
+        e.respondWith(respuestaNetwork);
+    });    
+    ```
+
 ### 65. Estrategia: Cache with network update
-9 min
-Reproducir
+1. Modificar **04-cache-offline\sw.js**:
+    ```js
+    // const CACHE_NAME = 'cache-1';
+    const CACHE_STATIC_NAME = 'static-v2';
+    const CACHE_DYNAMIC_NAME = 'dynamic-v1';
+    const CACHE_INMUTABLE_NAME = 'inmutable-v1';
+    const CACHE_DYNAMIC_LIMIT = 50;
+
+    function limpiarCache( cacheName, numeroItems ) {
+        caches.open( cacheName )
+            .then( cache => {
+                return cache.keys()
+                    .then( keys => {
+                        if ( keys.length > numeroItems ) {
+                            cache.delete(keys[0])
+                                .then(limpiarCache(cacheName, numeroItems));
+                        }
+                    });            
+            });
+    }
+
+    self.addEventListener('install', e => {
+        // Creación del cache estático
+        const cacheStatic = caches.open(CACHE_STATIC_NAME)
+            .then(cache => {
+                return cache.addAll([
+                    './',
+                    './index.html',
+                    './css/style.css',
+                    './img/main.jpg',
+                    './js/app.js'
+                ]);
+            });
+
+
+        // Creación del cache inmutable
+        const cacheInmutable = caches.open(CACHE_INMUTABLE_NAME)
+            .then(cache => {
+                return cache.addAll([
+                    'https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css'
+                ]);
+            });        
+        
+        // Parar el resto del proceso hasta que el cache esté cargado
+        e.waitUntil(Promise.all([cacheStatic, cacheInmutable]));
+    });
+
+    self.addEventListener('fetch', e => {
+        // ESTRATEGIAS DEL CACHE
+
+        // 1. Cache Only: usada cuando se quiere que toda la aplicación sea servida desde el cache
+        // e.respondWith(caches.match(e.request));
+
+        // 2. Cache with network fallback: busca primero en el cache, y si no lo encuentra va a internet
+        /* const respuestaCache = caches.match(e.request)
+            .then(res => {
+                // Si existe en cache, entonces retorna el recurso
+                if(res) return res;
+
+                // Si no existe en cache, entonces lo busca en internet
+                console.log('No existe', e.request.url);
+                return fetch(e.request)
+                    .then(newRes => {
+                        caches.open(CACHE_DYNAMIC_NAME)
+                            .then(cache => {
+                                cache.put(e.request, newRes);
+                                limpiarCache(CACHE_DYNAMIC_NAME, CACHE_DYNAMIC_LIMIT);
+                            });
+                        return newRes.clone();
+                    });
+            });
+
+        e.respondWith(respuestaCache); */
+
+        // 3. Cache with network update
+        /* const respuestaNetwork = fetch(e.request)
+            .then(res => {
+                if (!res) return caches.match(e.request);
+                // console.log('Fetch', res);
+                caches.open(CACHE_DYNAMIC_NAME)
+                    .then(cache => {
+                        cache.put(e.request, res);
+                        limpiarCache(CACHE_DYNAMIC_NAME, CACHE_DYNAMIC_LIMIT);
+                    });
+
+                return res.clone();
+            })
+            .catch(err => {
+                return caches.match(e.request);
+            });
+        e.respondWith(respuestaNetwork); */
+
+        // 4. Cache y Network Race: rendimiento crítico. Un paso atrás de la última actualización.
+        if (e.request.url.includes('bootstrap')) {
+            return e.respondWith(caches.match(e.request));
+        }
+        const respuestaNetworkRace = caches.open(CACHE_STATIC_NAME)
+            .then(cache => {
+                fetch(e.request)
+                    .then(newRes => cache.put(e.request, newRes));
+                return cache.match(e.request);
+            });
+
+        e.respondWith(respuestaNetworkRace);
+    });    
+    ```
+2. Modificar **04-cache-offline\index.html**:
+    ```html
+    <!DOCTYPE html>
+    <html lang="extends">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>Mi PWA</title>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" >
+        <link rel="stylesheet" href="css/style.css">
+    </head>
+    <body class="container p-3">
+        <img src="img/main.jpg" alt="Vías del tren" class="img-fluid">
+        <h1>Bienvenido!</h1>
+        <hr>
+
+        <p>Las PWAs son el siguiente paso a las página</p>
+        <p>Cargan sumamente rápido y no necesitan conexión a internet para trabajar</p>
+
+        <script src="js/app.js"></script>
+    </body>
+    </html>    
+    ```
+
 ### 66. Estrategia: Cache y Network Race
-12 min
-Reproducir
+1. Modificar **04-cache-offline\sw.js**:
+    ```js
+    // const CACHE_NAME = 'cache-1';
+    const CACHE_STATIC_NAME = 'static-v2';
+    const CACHE_DYNAMIC_NAME = 'dynamic-v1';
+    const CACHE_INMUTABLE_NAME = 'inmutable-v1';
+    const CACHE_DYNAMIC_LIMIT = 50;
+
+    function limpiarCache( cacheName, numeroItems ) {
+        caches.open( cacheName )
+            .then( cache => {
+                return cache.keys()
+                    .then( keys => {
+                        if ( keys.length > numeroItems ) {
+                            cache.delete(keys[0])
+                                .then(limpiarCache(cacheName, numeroItems));
+                        }
+                    });            
+            });
+    }
+
+    self.addEventListener('install', e => {
+        // Creación del cache estático
+        const cacheStatic = caches.open(CACHE_STATIC_NAME)
+            .then(cache => {
+                return cache.addAll([
+                    './',
+                    './index.html',
+                    './css/style.css',
+                    './img/main.jpg',
+                    './js/app.js',
+                    './img/no-img.jpg'
+                ]);
+            });
+
+
+        // Creación del cache inmutable
+        const cacheInmutable = caches.open(CACHE_INMUTABLE_NAME)
+            .then(cache => {
+                return cache.addAll([
+                    'https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css'
+                ]);
+            });        
+        
+        // Parar el resto del proceso hasta que el cache esté cargado
+        e.waitUntil(Promise.all([cacheStatic, cacheInmutable]));
+    });
+
+    self.addEventListener('fetch', e => {
+        // ESTRATEGIAS DEL CACHE
+
+        // 1. Cache Only: usada cuando se quiere que toda la aplicación sea servida desde el cache
+        // e.respondWith(caches.match(e.request));
+
+        // 2. Cache with network fallback: busca primero en el cache, y si no lo encuentra va a internet
+        /* const respuestaCache = caches.match(e.request)
+            .then(res => {
+                // Si existe en cache, entonces retorna el recurso
+                if(res) return res;
+
+                // Si no existe en cache, entonces lo busca en internet
+                console.log('No existe', e.request.url);
+                return fetch(e.request)
+                    .then(newRes => {
+                        caches.open(CACHE_DYNAMIC_NAME)
+                            .then(cache => {
+                                cache.put(e.request, newRes);
+                                limpiarCache(CACHE_DYNAMIC_NAME, CACHE_DYNAMIC_LIMIT);
+                            });
+                        return newRes.clone();
+                    });
+            });
+
+        e.respondWith(respuestaCache); */
+
+        // 3. Cache with network update
+        /* const respuestaNetwork = fetch(e.request)
+            .then(res => {
+                if (!res) return caches.match(e.request);
+                // console.log('Fetch', res);
+                caches.open(CACHE_DYNAMIC_NAME)
+                    .then(cache => {
+                        cache.put(e.request, res);
+                        limpiarCache(CACHE_DYNAMIC_NAME, CACHE_DYNAMIC_LIMIT);
+                    });
+
+                return res.clone();
+            })
+            .catch(err => {
+                return caches.match(e.request);
+            });
+        e.respondWith(respuestaNetwork); */
+
+        // 4. Cache y Network Race: rendimiento crítico. Un paso atrás de la última actualización.
+        /* if (e.request.url.includes('bootstrap')) {
+            return e.respondWith(caches.match(e.request));
+        }
+        const respuestaNetworkRace = caches.open(CACHE_STATIC_NAME)
+            .then(cache => {
+                fetch(e.request)
+                    .then(newRes => cache.put(e.request, newRes));
+                return cache.match(e.request);
+            });
+
+        e.respondWith(respuestaNetworkRace); */
+
+        // 5. Cache o Network Race
+        const respuestaCacheNetworkRace = new Promise((resolve, reject) => {
+            let rechazada = false;
+            const falloUnaVez = () => {
+                if (rechazada) {
+                    if ( /\.(png|jpg)$/i.test(e.request.url)) {
+                        resolve(caches.match('./img/no-img.jpg'));
+                    } else {
+                        reject('No se encontro respuesta');
+                    }
+                } else {
+                    rechazada = true;
+                }
+            }
+
+            fetch(e.request).then(res => {
+                res.ok ? resolve(res) : falloUnaVez();
+            }).catch(falloUnaVez);
+
+            caches.match(e.request).then(res => {
+                res ? resolve(res) : falloUnaVez();
+            }).catch(falloUnaVez);
+        });
+
+        e.respondWith(respuestaCacheNetworkRace);
+    });    
+    ```
+
 ### 67. Navegación offline con página personalizada de error
-9 min
-Reproducir
++ **[05-navegacion-offline.zip](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion06/05-navegacion-offline.zip)**.
+1. Crear **05-navegacion-offline\css\style.css**:
+    ```css
+    html, body {
+        height: 100%;
+        background-color: #1D2125;
+    }
+
+    h1,h2,h3,h4,h5 {
+        color: white;
+    }
+
+    hr {
+        background-color: white;
+    }
+
+    p{
+        color: #D1D1D1;
+    }    
+    ```
+2. Crear **05-navegacion-offline\js\app.js**:
+    ```js
+    if ( navigator.serviceWorker ) {
+        navigator.serviceWorker.register('./sw.js');
+    }
+
+    // if ( window.caches ) {
+    //     // caches.open('prueba-1');
+    //     caches.open('prueba-2');
+    //     // caches.has('prueba-2').then( console.log );
+    //     caches.delete('prueba-1').then( console.log );
+    //     caches.open('cache-v1.1').then( cache => {
+    //         // cache.add('/index.html');
+    //         cache.addAll([
+    //             '/index.html',
+    //             '/css/style.css',
+    //             '/img/main.jpg'
+    //         ]).then( () => {
+    //             // cache.delete('/css/style.css');
+    //             cache.put( 'index.html', new Response('Hola Mundo') );
+    //         });
+    //         // cache.match('/index.html')
+    //         //         .then( res => {
+    //         //             res.text().then( console.log );
+    //         //         });
+    //     });
+    //     caches.keys().then( keys => {
+    //         console.log(keys);
+    //     });
+    // };    
+    ```
+3. Crear **05-navegacion-offline\index.html**:
+    ```html
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>Mi PWA</title>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
+        <link rel="stylesheet" href="css/style.css">
+    </head>
+    <body class="container p-3">
+        <img src="img/main.jpg" alt="Vías del tren" class="img-fluid">
+        <!-- <img src="https://images.pexels.com/photos/371633/pexels-photo-371633.jpeg?auto=compress&cs=tinysrgb&h=350" alt="Vías del tren" class="img-fluid"> -->
+        <!-- <img src="https://images.pexels.com/photos/132037/pexels-photo-132037.jpeg?auto=compress&cs=tinysrgb&h=350" alt="Vías del tren" class="img-fluid"> -->
+        <!-- <img src="https://cdn.fstoppers.com/styles/large-16-9/s3/lead/2018/06/ultra-wide-mistakes-lead-image.jpg" alt="Vías del tren" class="img-fluid"> -->
+        <!-- <img src="https://images.pexels.com/photos/210186/pexels-photo-210186.jpeg?auto=compress&cs=tinysrgb&h=350" alt="Vías del tren" class="img-fluid"> -->
+        <!-- <img src="https://www.usnews.com/dims4/USNEWS/2ffb4ff/2147483647/resize/1200x%3E/quality/85/?url=http%3A%2F%2Fmedia.beam.usnews.com%2F33%2Fdc%2Fc70106214b8c9fd1df474942fafc%2F18-milford-sound-fjords-national-park.jpg" alt="Vías del tren" class="img-fluid"> -->
+        <!-- <img src="http://www.spanishandsurf.net/wordpress/wp-content/uploads/Paisaje_25-520x265.jpg" alt="Vías del tren" class="img-fluid"> -->
+        <!-- <img src="https://iso.500px.com/wp-content/uploads/2018/02/500px_blog_landscape_photography_quest-1500x1000.jpg" alt="Vías del tren" class="img-fluid"> -->
+        <!-- <img src="https://media.istockphoto.com/photos/alberta-wilderness-near-banff-picture-id583809524?k=6&m=583809524&s=612x612&w=0&h=BULe3Nu75PMVOVMctj6jIM6Wmb9tivpwvVsu6sOpo9A=" alt="Vías del tren" class="img-fluid"> -->
+        
+        <h1>Bienvenido</h1>
+        <hr>
+
+        <p> Las PWAs son el siguiente paso a las páginas y aplicaciones web.</p>
+        <p>Cargan sumamente rápido y no necesitan conexión a internet para trabajar</p>
+
+        <a href="pages/page2.html" class="btn btn-primary btn-block">Página 2</a>
+
+        <script src="js/app.js"></script>
+    </body>
+    </html>    
+    ```
+4. Crear **05-navegacion-offline\pages\offline.html**:
+    ```html
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>Mi PWA</title>
+    </head>
+    <body class="container p-3">
+        <h1>Offline File</h1>
+        <hr>
+    </body>
+    </html>    
+    ```
+6. Crear **05-navegacion-offline\pages\page2.html**:
+    ```html
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>Mi PWA</title>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
+        <link rel="stylesheet" href="../css/style.css">
+    </head>
+    <body class="container p-3">
+        <img src="../img/main-patas-arriba.jpg" alt="Vías del tren" class="img-fluid">
+
+        <h1>Página 2</h1>
+        <hr>
+        <a href="../" class="btn btn-primary btn-block">Home</a>
+
+        <script src="../js/app.js"></script>
+    </body>
+    </html>    
+    ```
+7. Crear **05-navegacion-offline\sw.js**:
+    ```js
+    // const CACHE_NAME = 'cache-1';
+    const CACHE_STATIC_NAME  = 'static-v1';
+    const CACHE_DYNAMIC_NAME = 'dynamic-v1';
+    const CACHE_INMUTABLE_NAME = 'inmutable-v1';
+    const CACHE_DYNAMIC_LIMIT = 50;
+
+    function limpiarCache(cacheName, numeroItems) {
+        caches.open(cacheName)
+            .then(cache => {
+                return cache.keys()
+                    .then(keys => {
+                        
+                        if (keys.length > numeroItems) {
+                            cache.delete( keys[0] )
+                                .then( limpiarCache(cacheName, numeroItems));
+                        }
+                    });       
+            });
+    }
+
+    self.addEventListener('install', e => {
+        const cacheProm = caches.open( CACHE_STATIC_NAME )
+            .then( cache => {
+                return cache.addAll([
+                    './',
+                    './index.html',
+                    './css/style.css',
+                    './img/main.jpg',
+                    './js/app.js',
+                    './img/no-img.jpg',
+                    './pages/offline.html'
+                ]); 
+            });
+        const cacheInmutable = caches.open(CACHE_INMUTABLE_NAME)
+                .then(cache => cache.add('https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css'));
+        e.waitUntil(Promise.all([cacheProm, cacheInmutable]) );
+    });
+
+    self.addEventListener('fetch', e => {
+
+        // 2- Cache with Network Fallback
+        const respuesta = caches.match(e.request)
+            .then(res => {
+                if (res) return res;
+                // No existe el archivo, tengo que ir a la web
+                return fetch(e.request).then(newResp => {
+                    caches.open(CACHE_DYNAMIC_NAME)
+                        .then(cache => {
+                            cache.put(e.request, newResp);
+                            limpiarCache(CACHE_DYNAMIC_NAME, 50);
+                        });
+                    return newResp.clone();
+                });
+            });
+
+        e.respondWith(respuesta);
+    });
+    ```
+
 ### 68. Mostrar la página offline si no existe la petición en cache
-7 min
-Reproducir
+1. Modificar **05-navegacion-offline\sw.js**:
+    ```js
+    // const CACHE_NAME = 'cache-1';
+    const CACHE_STATIC_NAME  = 'static-v2';
+    const CACHE_DYNAMIC_NAME = 'dynamic-v1';
+    const CACHE_INMUTABLE_NAME = 'inmutable-v1';
+    const CACHE_DYNAMIC_LIMIT = 50;
+
+    function limpiarCache(cacheName, numeroItems) {
+        caches.open(cacheName)
+            .then(cache => {
+                return cache.keys()
+                    .then(keys => {
+                        
+                        if (keys.length > numeroItems) {
+                            cache.delete( keys[0] )
+                                .then( limpiarCache(cacheName, numeroItems));
+                        }
+                    });       
+            });
+    }
+
+    self.addEventListener('install', e => {
+        const cacheProm = caches.open( CACHE_STATIC_NAME )
+            .then( cache => {
+                return cache.addAll([
+                    './',
+                    './index.html',
+                    './css/style.css',
+                    './img/main.jpg',
+                    './js/app.js',
+                    './img/no-img.jpg',
+                    './pages/offline.html'
+                ]); 
+            });
+        const cacheInmutable = caches.open(CACHE_INMUTABLE_NAME)
+                .then(cache => cache.add('https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css'));
+        e.waitUntil(Promise.all([cacheProm, cacheInmutable]) );
+    });
+
+    self.addEventListener('fetch', e => {
+
+        // 2- Cache with Network Fallback
+        const respuesta = caches.match(e.request)
+            .then(res => {
+                if (res) return res;
+                // No existe el archivo, tengo que ir a la web
+                return fetch(e.request).then(newResp => {
+                    caches.open(CACHE_DYNAMIC_NAME)
+                        .then(cache => {
+                            cache.put(e.request, newResp);
+                            limpiarCache(CACHE_DYNAMIC_NAME, 50);
+                        });
+                    return newResp.clone();
+                });
+            })
+            .catch(err => {
+                if (e.request.headers.get('accept').includes('text/html')) {
+                    return caches.match('./pages/offline.html');
+                }
+            });
+
+        e.respondWith(respuesta);
+    });
+    ```
+2. Modificar **05-navegacion-offline\pages\offline.html**:
+    ```html
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>Mi PWA</title>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
+        <link rel="stylesheet" href="../css/style.css">
+    </head>
+    <body class="container p-3">
+        <h1>Offline File</h1>
+        <hr>
+
+        <p>Sin conexión a internet</p>
+    </body>
+    </html>    
+    ```
+
 ### 69. Borrando versiones viejas del cache
-8 min
-Iniciar
+1. Modificar **05-navegacion-offline\sw.js**:
+    ```js
+    // const CACHE_NAME = 'cache-1';
+    const CACHE_STATIC_NAME  = 'static-v3';
+    const CACHE_DYNAMIC_NAME = 'dynamic-v1';
+    const CACHE_INMUTABLE_NAME = 'inmutable-v1';
+    const CACHE_DYNAMIC_LIMIT = 50;
+
+    function limpiarCache(cacheName, numeroItems) {
+        caches.open(cacheName)
+            .then(cache => {
+                return cache.keys()
+                    .then(keys => {
+                        
+                        if (keys.length > numeroItems) {
+                            cache.delete( keys[0] )
+                                .then( limpiarCache(cacheName, numeroItems));
+                        }
+                    });       
+            });
+    }
+
+    self.addEventListener('install', e => {
+        const cacheProm = caches.open( CACHE_STATIC_NAME )
+            .then( cache => {
+                return cache.addAll([
+                    './',
+                    './index.html',
+                    './css/style.css',
+                    './img/main.jpg',
+                    './js/app.js',
+                    './img/no-img.jpg',
+                    './pages/offline.html'
+                ]); 
+            });
+        const cacheInmutable = caches.open(CACHE_INMUTABLE_NAME)
+                .then(cache => cache.add('https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css'));
+        e.waitUntil(Promise.all([cacheProm, cacheInmutable]) );
+    });
+
+    self.addEventListener('activate', e => {
+        const limpieza = caches.keys().then(keys => {
+            keys.forEach(key => {
+                if (key !== CACHE_STATIC_NAME && key.includes('static')) {
+                //if (key !== CACHE_STATIC_NAME || key !== CACHE_DYNAMIC_NAME || key !== CACHE_INMUTABLE_NAME) {
+                    return caches.delete(key);
+                }
+            });
+        });
+
+        e.waitUntil(limpieza);
+    })
+
+    self.addEventListener('fetch', e => {
+
+        // 2- Cache with Network Fallback
+        const respuesta = caches.match(e.request)
+            .then(res => {
+                if (res) return res;
+                // No existe el archivo, tengo que ir a la web
+                return fetch(e.request).then(newResp => {
+                    caches.open(CACHE_DYNAMIC_NAME)
+                        .then(cache => {
+                            cache.put(e.request, newResp);
+                            limpiarCache(CACHE_DYNAMIC_NAME, 50);
+                        });
+                    return newResp.clone();
+                });
+            })
+            .catch(err => {
+                if (e.request.headers.get('accept').includes('text/html')) {
+                    return caches.match('./pages/offline.html');
+                }
+            });
+
+        e.respondWith(respuesta);
+    });
+    ```
+
 ### Cuestionario 3: Examen sobre el cache
-Iniciar
++ Pregunta 1: Cuando creamos el cache dinámico, ¿El navegador web administra dinámicamente para que no pase de los 50 items de forma automática?
+    **Respuesta**: Falso.
++ Pregunta 2: ¿Qué hace esta instrucción?
+    ```js
+    caches.keys()
+    ```
+    **Respuesta**: Es una promesa que retorna todos los nombres de los caches que están registrados.
++ Pregunta 3: ¿Qué argumentos recibe el **cache.put(Argumento 1, Argumento 2)**?
+    **Respuesta**: Request y la respuesta a ese request.
++ Pregunta 4: La principal razón para que el **fetch(e.request)** falle y se dispare el error.
+    **Respuesta**: Fallo por conexión a internet.
++ Pregunta 5: ¿Qué estrategia es esta?
+    ```js
+    e.respondWith(caches.match(e.request));
+    ```
+    **Respuesta**: Cache Only.
++ Pregunta 6: ¿Qué estrategia es esta?
+    ```js
+    const respuesta = caches.match(e.request)
+        .then(res => {
+            if (res) return res;
+            return fetch(e.request ).then(newResp => {
+                caches.open(CACHE_DYNAMIC_NAME)
+                    .then( cache => {
+                        cache.put(e.request, newResp);
+                        limpiarCache(CACHE_DYNAMIC_NAME, 50);
+                    });
+                return newResp.clone();
+            });
+        });
+    
+        e.respondWith(respuesta);
+    ```
+    **Respuesta**: Cache first with network fallback.
++ Pregunta 7: ¿Todas las estrategias del cache, permiten conexión offline?
+    **Respuesta**: Verdadero.
++ Pregunta 8: ¿Cuáles son las desventajas del Network with cache fallback?
+    **Respuesta**: Siempre consumirá internte aunque exista en cache y puede ser lenta debido a la conexión a internet.
++ Pregunta 9: Durante esta instalación, si la imagen **no-img.jpg** no existiera, ¿Qué pasaría?
+    ```js
+    cache.addAll([
+        './',
+        './index.html',
+        './css/style.css',
+        './img/main.jpg',
+        './js/app.js',
+        './img/no-img.jpg'
+    ]);
+    ```
+    **Respuesta**: La instalación del nuevo SW es abortada.
++ Pregunta 10: ¿Cúal es la idea de tener versionamiento en nuestros caches?
+    **Respuesta**: Que el nuevo cache no colisione o se mezcle con el viejo cache.
+
 ### 70. Código fuente de la sección
-1 min
-Iniciar
++ **[Código fuente](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion06/05-navegacion-offline-final.zip)**.
+
 ### 71. Documentaciones adicionales
-1 min
-Reproducir
++ **[David Walsh - Cache](https://davidwalsh.name/cache)**.
++ **[Google Developers - Cache API](https://web.dev/cache-api-quick-guide)**.
 
 
 ## Sección 7: Despliegue a dispositivos
-72. Introducción a la sección
+### 72. Introducción a la sección
 2 min
 Iniciar
-73. Temas puntuales de la sección
+### 73. Temas puntuales de la sección
 1 min
 Reproducir
-74. Inicio del proyecto - Twittor
+### 74. Inicio del proyecto - Twittor
 8 min
 Reproducir
-75. Repaso: Configurar SW
+### 75. Repaso: Configurar SW
 12 min
 Reproducir
-76. Repaso: Cache con Network Fallback
+### 76. Repaso: Cache con Network Fallback
 12 min
 Reproducir
-77. El archivo Manifest.json
+### 77. El archivo Manifest.json
 12 min
 Reproducir
-78. Depurar y correr en un dispositivo real
+### 78. Depurar y correr en un dispositivo real
 12 min
 Reproducir
-79. Desplegar aplicación en GitHub Pages
+### 79. Desplegar aplicación en GitHub Pages
 11 min
 Reproducir
-80. Instalando nuestra PWA en el dispositivo móvil - Android
+### 80. Instalando nuestra PWA en el dispositivo móvil - Android
 6 min
 Reproducir
-81. Mejorando la apariencia en IOS
+### 81. Mejorando la apariencia en IOS
 13 min
 Reproducir
-82. Removiendo el Notch de los iPhones
+### 82. Removiendo el Notch de los iPhones
 6 min
 Iniciar
-83. Notas de Android
+### 83. Notas de Android
 1 min
 Reproducir
-84. Audits - Lighthouse
+### 84. Audits - Lighthouse
 6 min
 Iniciar
-85. Generadores automáticos del Manifes.json
+### 85. Generadores automáticos del Manifes.json
 1 min
 Iniciar
-86. Código fuente de la sección
+### 86. Código fuente de la sección
 1 min
 Reproducir
+
+
+## Sección 8: IndexedDB - Reforzamiento de base de datos local
 87. Introducción a la sección
 2 min
 Iniciar
