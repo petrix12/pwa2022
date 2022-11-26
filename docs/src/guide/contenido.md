@@ -2424,89 +2424,680 @@ El APP SHELL esto lo necesario que necesita una aplicación para que funcione, c
 
 ## Sección 7: Despliegue a dispositivos
 ### 72. Introducción a la sección
-2 min
-Iniciar
++ Introducción a la instalación de PWA en dispositivos.
+
 ### 73. Temas puntuales de la sección
-1 min
-Reproducir
++ Esta sección está enfocada en probar nuestra aplicación en un dispositivo y verlo funcionando en el mismo.
++ Es recomendable trabajar con android ya que es el sistema operativo que mejor implementa las PWAs hasta el momento, pero también aprenderemos unos tips que servirán para mejorar el aspecto visual de nuestra aplicación en IOS.
++ El corazón de esta sección es el archivo **manifest.json**, quien nos ayuda a indicarle al sistema operativo cómo debe de lucir nuestra aplicación, pero también aprenderemos un par de atributos meta y técnicas para que se vea aún mejor la aplicación web
+
 ### 74. Inicio del proyecto - Twittor
-8 min
-Reproducir
++ **[06-twittor.zip](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion07/06-twittor.zip)**.
++ **[Twitter Client UI in CSS + HTML](https://codepen.io/marceloag/pen/AevNyO)**.
++ **[Animate.css](https://animate.style/)**.
+1. Descomprimir **[06-twittor.zip](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion07/06-twittor.zip)** en **06-twittor** y levantar servidor con:
+    + $ http-server -o -p 8082
+    + Cambiar luego la dercción de **http://127.0.0.1:8082** a **http://localhost:8082**.
+2. Modificar **06-twittor\README.md**:
+    ```md
+    # Chat Soluciones++
+    Un cascarón de chat usando jQuery para PWAs    
+    ```
+
 ### 75. Repaso: Configurar SW
-12 min
-Reproducir
++ [activate-borrar-cache-viejo.txt](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion07/activate-borrar-cache-viejo.txt).
+1. Modificar **06-twittor\js\app.js**:
+    ```js
+    // Registro del SW
+    if (navigator.serviceWorker) {
+        navigator.serviceWorker.register('./sw.js');
+    }
+
+    // Referencias de jQuery
+    var titulo      = $('#titulo');
+    var nuevoBtn    = $('#nuevo-btn');
+    var salirBtn    = $('#salir-btn');
+    var cancelarBtn = $('#cancel-btn');
+    var postBtn     = $('#post-btn');
+    var avatarSel   = $('#seleccion');
+    var timeline    = $('#timeline');
+
+    var modal       = $('#modal');
+    var modalAvatar = $('#modal-avatar');
+    var avatarBtns  = $('.seleccion-avatar');
+    var txtMensaje  = $('#txtMensaje');
+
+    // El usuario, contiene el ID del héroe seleccionado
+    var usuario;
+
+    // ===== Codigo de la aplicación
+    function crearMensajeHTML(mensaje, personaje) {
+        var content =`
+            <li class="animated fadeIn fast">
+                <div class="avatar">
+                    <img src="img/avatars/${ personaje }.jpg">
+                </div>
+                <div class="bubble-container">
+                    <div class="bubble">
+                        <h3>@${ personaje }</h3>
+                        <br/>
+                        ${ mensaje }
+                    </div>
+                    
+                    <div class="arrow"></div>
+                </div>
+            </li>
+        `;
+
+        timeline.prepend(content);
+        cancelarBtn.click();
+    }
+
+    // Globals
+    function logIn( ingreso ) {
+        if ( ingreso ) {
+            nuevoBtn.removeClass('oculto');
+            salirBtn.removeClass('oculto');
+            timeline.removeClass('oculto');
+            avatarSel.addClass('oculto');
+            modalAvatar.attr('src', 'img/avatars/' + usuario + '.jpg');
+        } else {
+            nuevoBtn.addClass('oculto');
+            salirBtn.addClass('oculto');
+            timeline.addClass('oculto');
+            avatarSel.removeClass('oculto');
+            titulo.text('Seleccione Personaje');
+        }
+    }
+
+    // Seleccion de personaje
+    avatarBtns.on('click', function() {
+        usuario = $(this).data('user');
+        titulo.text('@' + usuario);
+        logIn(true);
+    });
+
+    // Boton de salir
+    salirBtn.on('click', function() {
+        logIn(false);
+    });
+
+    // Boton de nuevo mensaje
+    nuevoBtn.on('click', function() {
+        modal.removeClass('oculto');
+        modal.animate({ 
+            marginTop: '-=1000px',
+            opacity: 1
+        }, 200 );
+    });
+
+    // Boton de cancelar mensaje
+    cancelarBtn.on('click', function() {
+        modal.animate({ 
+            marginTop: '+=1000px',
+            opacity: 0
+        }, 200, function() {
+            modal.addClass('oculto');
+            txtMensaje.val('');
+        });
+    });
+
+    // Boton de enviar mensaje
+    postBtn.on('click', function() {
+        var mensaje = txtMensaje.val();
+        if ( mensaje.length === 0 ) {
+            cancelarBtn.click();
+            return;
+        }
+
+        crearMensajeHTML( mensaje, usuario );
+    });    
+    ```
+2. Crear **06-twittor\sw.js**:
+    ```js
+    const STATIC_CACHE      = 'static-v1';
+    const DYNAMIC_CACHE     = 'dynamic-v1';
+    const INMUTABLE_CACHE   = 'inmutable-v1';
+
+    const APP_SHELL = [
+        './',
+        './index.html',
+        './css/style.css',
+        './img/favicon.ico',
+        './img/avatars/spiderman.jpg',
+        './img/avatars/ironman.jpg',
+        './img/avatars/wolverine.jpg',
+        './img/avatars/thor.jpg',
+        './img/avatars/hulk.jpg',
+        './js/app.js'
+    ];
+
+    const APP_SHELL_INMUTABLE = [
+        'https://fonts.googleapis.com/css?family=Quicksand:300,400',
+        'https://fonts.googleapis.com/css?family=Lato:400,300',
+        /* 'https://use.fontawesome.com/releases/v5.3.1/css/all.css', */
+        './css/animate.css',
+        './js/libs/jquery.js'
+    ];
+
+    // Creación de los caches
+    self.addEventListener('install', e => {
+        const cacheStatic = caches.open(STATIC_CACHE).then(cache => cache.addAll(APP_SHELL));
+        const cacheInmutable = caches.open(INMUTABLE_CACHE).then(cache => cache.addAll(APP_SHELL_INMUTABLE));
+
+        e.waitUntil(Promise.all([cacheStatic, cacheInmutable]));
+    });
+
+    // Limpieza de cache superados
+    self.addEventListener('activate', e => {
+        const limpieza = caches.keys().then(keys => {
+            keys.forEach(key => {
+                if (key !== STATIC_CACHE && key.includes('static')) {
+                //if (key !== CACHE_STATIC_NAME || key !== CACHE_DYNAMIC_NAME || key !== CACHE_INMUTABLE_NAME) {
+                    return caches.delete(key);
+                }
+            });
+        });
+
+        e.waitUntil(limpieza);
+    });    
+    ```
+3. Modificar **06-twittor\index.html**:
+    ```html
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>Twittor</title>
+
+        <link href='https://fonts.googleapis.com/css?family=Quicksand:300,400' rel='stylesheet' type='text/css'>
+        <link href='https://fonts.googleapis.com/css?family=Lato:400,300' rel='stylesheet' type='text/css'>
+        <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css">
+
+        <link rel="stylesheet" href="css/style.css">
+        <link rel="stylesheet" href="css/animate.css">
+
+        <link rel="shortcut icon" type="image/ico" href="img/favicon.ico"/>
+    </head>
+    <body>
+            <!-- Titulo -->
+            <span class="first"> 
+                <span id="salir-btn" class="fa fa-sign-out-alt out oculto animated fadeIn"></span>
+                <span id="titulo">
+                    <i class="fa fa-user"></i>
+                    Seleccione Personaje
+                </span>
+                <span id="nuevo-btn" class="fa fa-pen-square new oculto animated fadeIn fast"></span>
+            </span>
+            <!-- Fin Titulo -->
+
+            <!-- Modal -->
+            <div id="modal" class="oculto">
+                <img id="modal-avatar" src="img/avatars/spiderman.jpg">
+
+                <span class="first"> 
+                    <span id="titulo-modal">Nuevo mensaje</span>
+                    <span id="cancel-btn" class="fa fa-times"></span>
+                </span>
+                
+                <div class="nuevo-mensaje">
+                    <textarea id="txtMensaje" placeholder="Nuevo mensaje..." rows="5"></textarea>
+                </div>
+
+                <!-- boton de enviar -->
+                <div id="post-btn" class="fab">
+                    <i class="fa fa-paper-plane"></i>
+                </div>
+
+                <div id="post-btn" class="fab-marker">
+                    <i class="fa fa-map-marker-alt"></i>
+                </div>
+
+                <div id="post-btn" class="fab-photo">
+                    <i class="fa fa-image"></i>
+                </div>
+            </div>
+            <!-- Fin Modal -->
+
+            <!-- Seleccion de personaje -->
+            <div id="seleccion" class="seleccion animated fadeIn fast" align="center">    
+                <div>
+                    <img data-user="spiderman" src="img/avatars/spiderman.jpg" alt="spiderman" class="seleccion-avatar">
+                </div>
+                <div>
+                    <img data-user="ironman" src="img/avatars/ironman.jpg" alt="ironman" class="seleccion-avatar">
+                </div>
+                <div>
+                    <img data-user="wolverine" src="img/avatars/wolverine.jpg" alt="wolverine" class="seleccion-avatar">
+                </div>
+                <div>
+                    <img data-user="thor" src="img/avatars/thor.jpg" alt="thor" class="seleccion-avatar">
+                </div>
+                <div>
+                    <img data-user="hulk" src="img/avatars/hulk.jpg" alt="hulk" class="seleccion-avatar">
+                </div>
+            </div>
+            <!-- FIN Seleccion de personaje -->
+
+            <!-- Lista de mensajes -->
+            <ul id="timeline" class="timeline oculto">   
+                <!-- Mensaje -->
+                <li class="animated fadeIn fast">
+                    <div class="avatar">
+                        <img src="img/avatars/spiderman.jpg">
+                    </div>
+                    <div class="bubble-container">
+                        <div class="bubble">
+                            <h3>@spiderman</h3>
+                            <br/>
+                            La tía May, hizo unos panqueques en forma de ironman!
+                        </div>        
+                        <div class="arrow"></div>
+                    </div>
+                </li>
+                <!-- Fin del mensaje -->
+            </ul>
+            <!-- Fin Lista de mensajes -->
+
+            <script src="js/libs/jquery.js"></script>
+            <script src="js/app.js"></script>
+    </body>
+    </html>    
+    ```
+
 ### 76. Repaso: Cache con Network Fallback
-12 min
-Reproducir
+1. Crear **06-twittor\js\sw-utils.js**:
+    ```js
+    function actualizaCacheDinamico(dynamicCache, req, res) {
+        if(res.ok) {
+            return caches.open(dynamicCache).then(caches => {
+                caches.put(req, res.clone());
+                return res.clone();
+            });
+        } else {
+            return res;
+        }
+    }    
+    ```
+2. Modificar **06-twittor\sw.js**:
+    ```js
+    importScripts('js/sw-utils.js');
+
+    const STATIC_CACHE      = 'static-v2';
+    const DYNAMIC_CACHE     = 'dynamic-v1';
+    const INMUTABLE_CACHE   = 'inmutable-v1';
+
+    const APP_SHELL = [
+        './',
+        './index.html',
+        './css/style.css',
+        './img/favicon.ico',
+        './img/avatars/spiderman.jpg',
+        './img/avatars/ironman.jpg',
+        './img/avatars/wolverine.jpg',
+        './img/avatars/thor.jpg',
+        './img/avatars/hulk.jpg',
+        './js/app.js'
+    ];
+
+    const APP_SHELL_INMUTABLE = [
+        'https://fonts.googleapis.com/css?family=Quicksand:300,400',
+        'https://fonts.googleapis.com/css?family=Lato:400,300',
+        /* 'https://use.fontawesome.com/releases/v5.3.1/css/all.css', */
+        './css/animate.css',
+        './js/libs/jquery.js'
+    ];
+
+    // Creación de caches
+    self.addEventListener('install', e => {
+        const cacheStatic = caches.open(STATIC_CACHE).then(cache => cache.addAll(APP_SHELL));
+        const cacheInmutable = caches.open(INMUTABLE_CACHE).then(cache => cache.addAll(APP_SHELL_INMUTABLE));
+
+        e.waitUntil(Promise.all([cacheStatic, cacheInmutable]));
+    });
+
+    // Limpieza de caches obsoletos
+    self.addEventListener('activate', e => {
+        const limpieza = caches.keys().then(keys => {
+            keys.forEach(key => {
+                if (key !== STATIC_CACHE && key.includes('static')) {
+                //if (key !== CACHE_STATIC_NAME || key !== CACHE_DYNAMIC_NAME || key !== CACHE_INMUTABLE_NAME) {
+                    return caches.delete(key);
+                }
+            });
+        });
+
+        e.waitUntil(limpieza);
+    });
+
+    // Estrategias del cache
+    self.addEventListener('fetch', e => {
+        const respuesta = caches.match(e.request).then(res => {
+            if (res) {
+                return res;
+            } else {
+                // console.log(e.request.url);
+                return fetch(e.request).then(newRes => {
+                    return actualizaCacheDinamico(DYNAMIC_CACHE, e.request, newRes);
+                });
+            }
+
+        });
+
+        e.waitUntil(respuesta);
+    });
+    ```
+3. Modificar **06-twittor\\.jshintrc**:
+    ```jshintrc
+    // ...
+    "globals"       : {
+        // ...
+        "importScripts" : true
+    }
+    // ...   
+    ```
+
 ### 77. El archivo Manifest.json
-12 min
-Reproducir
++ **[Cómo agregar un manifiesto en la aplicación web](https://web.dev/add-manifest)**.
++ **[material+de+clase+-+Manifest.zip](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion07/material+de+clase+-+Manifest.zip)**.
++ **[El+manifiesto+Google+Developer.pdf](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion07/El+manifiesto+Google+Developer.pdf)**.
++ Extensión de VSC recomendada: 
+    + PWA Tools
+        + John Papa
+        + PWA Tools
+1. Crear archivo de manifiesto **06-twittor\manifest.json**:
+    ```json
+    {
+        "short_name": "Twittor",
+        "name": "Programa de prueba para PWA",
+        "start_url": "index.html",
+        "background_color": "#3498db",
+        "display": "standalone",
+        "orientation": "portrait",
+        "theme_color": "#3498db",
+        "icons": [
+            {
+                "src": "img/icons/icon-72x72.png",
+                "type": "image/png",
+                "sizes": "72x72"
+            },
+            {
+                "src": "img/icons/icon-96x96.png",
+                "type": "image/png",
+                "sizes": "96x96"
+            },
+            {
+                "src": "img/icons/icon-128x128.png",
+                "type": "image/png",
+                "sizes": "128x128"
+            },
+            {
+                "src": "img/icons/icon-144x144.png",
+                "type": "image/png",
+                "sizes": "144x144"
+            },
+            {
+                "src": "img/icons/icon-152x152.png",
+                "type": "image/png",
+                "sizes": "152x152"
+            },
+            {
+                "src": "img/icons/icon-192x192.png",
+                "type": "image/png",
+                "sizes": "192x192"
+            },
+            {
+                "src": "img/icons/icon-384x384.png",
+                "type": "image/png",
+                "sizes": "384x384"
+            },
+            {
+                "src": "img/icons/icon-512x512.png",
+                "type": "image/png",
+                "sizes": "512x512"
+            }
+        ]
+    }    
+    ```
+2. Modificar **06-twittor\index.html**:
+    ```html
+    <!-- ... -->
+    <head>
+        <!-- ... -->
+        <!-- Manifest -->
+        <link rel="manifest" href="manifest.json">
+        <!-- Android -->
+        <meta name="theme-color" content="#3498db">
+    </head>
+    <!-- ... -->
+    ```
+
 ### 78. Depurar y correr en un dispositivo real
-12 min
-Reproducir
++ Sobre como correr nuestra aplicación en desarrollo en un dispositivo móvil.
+
 ### 79. Desplegar aplicación en GitHub Pages
-11 min
-Reproducir
++ **[Git](https://git-scm.com)**.
++ **[GitHub](https://github.com)**.
+1. Modificar **06-twittor\js\app.js**:
+    ```js
+    let url = window.location.href;
+    let swLocation = '/twittor/sw.js';
+
+    // Registro del SW
+    if (navigator.serviceWorker) {
+        if(url.includes('localhost')){   
+            swLocation = './sw.js';
+        }
+        navigator.serviceWorker.register(swLocation);
+        //navigator.serviceWorker.register('./sw.js');
+    }
+    // ...    
+    ```
+    ::: warning Advertencia
+    Creo que este cambio ya no es necesario, por lo que no se tomará en cuenta.
+    :::
+2. Modificar **06-twittor\sw.js**:
+    ```js
+    const APP_SHELL = [
+        //'./',
+        './index.html',
+        './css/style.css',
+        './img/favicon.ico',
+        './img/avatars/spiderman.jpg',
+        './img/avatars/ironman.jpg',
+        './img/avatars/wolverine.jpg',
+        './img/avatars/thor.jpg',
+        './img/avatars/hulk.jpg',
+        './js/app.js'
+    ];    
+    ```
+    ::: warning Advertencia
+    Creo que este cambio ya no es necesario, por lo que no se tomará en cuenta.
+    :::
+3. Crear proyecto en la página de [GitHub](https://github.com) con el nombre: **twittor**.
+    + **Description**: Aplicación de PWA curso de Fernando Herrera.
+    + **Public**.
+4. En la ubicación raíz del proyecto en la terminal de la máquina local:
+    + $ git init
+    + $ git add .
+    + $ git commit -m "Primer commit"
+    + $ git branch -M main
+    + $ git remote add origin https://github.com/petrix12/twittor.git
+    + $ git push -u origin main
+5. Para utilizar GitHub como hosting de nuestro proyecto:
+    + Ir al proyecto **twittor** en GitHub.
+    + Clic en **Sttings**.
+    + En el panel izquierdo clic en **Pages**.
+        + Source: Deploy for branch
+        + Branch: main
+        + Clic en **Save**
+    + Obtener el enlace de la página: https://petrix12.github.io/twittor
+        ::: wargning Advertencia
+        Quizas sea necesario esperar entre 2 y 5 minutos para que la página se genere, y probablemente se tambión necesario refrescar la página.
+        :::
+
 ### 80. Instalando nuestra PWA en el dispositivo móvil - Android
-6 min
-Reproducir
++ Sobre como instalar nuestra aplicación en Android.
+
 ### 81. Mejorando la apariencia en IOS
-13 min
-Reproducir
++ **[Guía de estilos iOS](https://medium.com/appscope/designing-native-like-progressive-web-apps-for-ios-1b3cdda1d0e8)**.
++ **[Guia+de+estilos+ios.pdf](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion07/Guia+de+estilos+ios.pdf)**.
+1. Modificar **06-twittor\index.html**:
+    ```html
+    <!-- ... -->
+    <head>
+        <!-- ... -->
+        <!-- iOS -->
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="apple-touch-icon" href="img/icons/icon-192x192.png">
+        <link rel="apple-touch-icon" sizes="152x152" href="img/icons/icon-152x152.png">
+        <link rel="apple-touch-icon" sizes="180x180" href="img/icons/icon-192x192.png">
+        <link rel="apple-touch-icon" sizes="167x167" href="img/icons/icon-152x152.png">
+        <!-- iPhone X (1125px x 2436px) -->
+        <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="img/icons-ios/apple-launch-1125x2436.png">
+        <!-- iPhone 8, 7, 6s, 6 (750px x 1334px) -->
+        <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="img/icons-ios/apple-launch-750x1334.png">
+        <!-- iPhone 8 Plus, 7 Plus, 6s Plus, 6 Plus (1242px x 2208px) -->
+        <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" href="img/icons-ios/apple-launch-1242x2208.png">
+        <!-- iPhone 5 (640px x 1136px) -->
+        <link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="img/icons-ios/apple-launch-640x1136.png">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        <meta name="apple-mobile-web-app-title" content="Twittor!">
+    </head>
+    <!-- ... -->    
+    ```
+2. Modificar **06-twittor\css\style.css**:
+    ```css
+    /* ... */
+    html, body {
+        /* ... */
+        overscroll-behavior-y: contanin;
+        -webkit-user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+    }    
+    /* ... */
+    ```
+    ::: warning Advertencia
+    Lo importante es que los nuevos estilos se encuentre en el **body**.
+    :::
+3. Modificar **06-twittor\sw.js**:
+    ```js
+    // ...
+    const STATIC_CACHE      = 'static-v3';
+    // ...
+    ```
+
 ### 82. Removiendo el Notch de los iPhones
-6 min
-Iniciar
+1. Modificar **06-twittor\index.html**:
+    ```html
+    <!-- ... -->
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, height=device-height, viewport-fit=cover">
+        <!-- ... -->
+    </head>
+    <!-- ... -->   
+    ```
+2. Modificar **06-twittor\sw.js**:
+    ```js
+    // ...
+    const STATIC_CACHE      = 'static-v4';
+    const DYNAMIC_CACHE     = 'dynamic-v2';
+    // ...
+    // Limpieza de caches obsoletos
+    self.addEventListener('activate', e => {
+        const limpieza = caches.keys().then(keys => {
+            keys.forEach(key => {
+                if (key !== STATIC_CACHE && key.includes('static')) {
+                //if (key !== CACHE_STATIC_NAME || key !== CACHE_DYNAMIC_NAME || key !== CACHE_INMUTABLE_NAME) {
+                    return caches.delete(key);
+                }
+
+                if (key !== DYNAMIC_CACHE && key.includes('dynamic')) {
+                    return caches.delete(key);
+                }
+            });
+        });
+
+        e.waitUntil(limpieza);
+    });
+    // ...
+    ```
+
 ### 83. Notas de Android
-1 min
-Reproducir
++ Sobre la importancia de incorporar los cambios del apartado anterior.
+
 ### 84. Audits - Lighthouse
-6 min
-Iniciar
+::: tip Notas
++ En las herramientas de desarrollo de Google Chrome, se encuentra el menú **Audits** o **Lighthouse** para ayudarnos a evaluar que tan bien esta nuestra PWA.
++ Al probar esta herramienta podemos deseleccionar **SEO** y aspirar a estar sobre un 70% en cada uno de los items.
++ Al finalizar de probar la aplicación es recomendable limpiar el cache, ya que esta herramienta genera mucha basura (Creo que este problema ya lo solventó Google).
+:::
+
 ### 85. Generadores automáticos del Manifes.json
-1 min
-Iniciar
++ Hay muchos generadores automáticos del archivo manifest.json, aquí se muestran dos, que el autor del curso considera muy buenas, algunos hasta generan todos los íconos que necesitamos para la aplicación.
+    + https://app-manifest.firebaseapp.com     (**recomendado**)
+    + https://tomitm.github.io/appmanifest
+
 ### 86. Código fuente de la sección
-1 min
-Reproducir
++ **Código fuente**:
+    + [Respositorio GitHub](https://github.com/Klerith/twittor).
+    + [twittor-master.zip](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion07/twittor-master.zip).
 
 
 ## Sección 8: IndexedDB - Reforzamiento de base de datos local
-87. Introducción a la sección
+### 87. Introducción a la sección
 2 min
 Iniciar
-88. Temas puntuales de la sección
+
+
+
+
+
+    ```js
+    ```
+
+
+
+### 88. Temas puntuales de la sección
 1 min
 Reproducir
-89. Inicios en indexedDB
+### 89. Inicios en indexedDB
 8 min
 Reproducir
-90. Manejo de errores e inserción de registros
+### 90. Manejo de errores e inserción de registros
 9 min
 Iniciar
-91. Código fuente del indexedDB
+### 91. Código fuente del indexedDB
 1 min
 Reproducir
-92. PouchDB - Empezando
+### 92. PouchDB - Empezando
 8 min
 Reproducir
-93. Leer registros de la base de datos
+### 93. Leer registros de la base de datos
 6 min
 Reproducir
-94. Editar y Borrar TODOS
+### 94. Editar y Borrar TODOS
 6 min
 Reproducir
-95. Tarea: Transformar nuestra TODO APP en una PWA
+### 95. Tarea: Transformar nuestra TODO APP en una PWA
 6 min
 Reproducir
-96. Tarea: Entrenamiento sobre PouchDB
+### 96. Tarea: Entrenamiento sobre PouchDB
 4 min
 Reproducir
-97. Resolución de la tarea - PouchDB
+### 97. Resolución de la tarea - PouchDB
 10 min
 Iniciar
-98. Código fuente de la sección
+### 98. Código fuente de la sección
 1 min
 Reproducir
+
+
+## Sección 9: Sincronización sin conexión - Offline Synchronization
 99. Introducción a la sección
 1 min
 Iniciar
@@ -2672,5 +3263,8 @@ Reproducir
 153. Despedida
 
 
-
-https://github.com/petrix12/pwa2022/blob/main/
+## Utilidades
++ Raíz del respositorio GitHub: https://github.com/petrix12/pwa2022/blob/main/
++ Levantar servidor con **http-server**:
+    + $ http-server -o -p 8082
+    + Cambiar luego la dercción de **http://127.0.0.1:8082** a **http://localhost:8082**.
