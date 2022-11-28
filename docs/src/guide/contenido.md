@@ -3050,9 +3050,429 @@ El APP SHELL esto lo necesario que necesita una aplicación para que funcione, c
 
 ## Sección 8: IndexedDB - Reforzamiento de base de datos local
 ### 87. Introducción a la sección
-2 min
-Iniciar
++ Sobre el uso de IndexedDB.
 
+### 88. Temas puntuales de la sección
++ Esta sección está enfocada en aprender cómo grabar data en una base de datos local que funcione sin conexión a internet.
++ La idea central, es poder realizar grabaciones locales sin conexión a internet, para que cuando recuperemos la comunicación con el servidor, realizar una sincronización  de los registros almacenados localmente.
++ ¿Suena demasiado bien? pues es posible hacerlo, lamentablemente para trabajar con esto ocupamos algo llamado indexeddb, el cual es algo complicado y poco amigable, pero aquí lo aprenderemos de igual forma, y también nos enfocaremos en utilizar una alternativa fácil de usar que nos resolverá el mismo problema.
+
+### 89. Inicios en indexedDB
++ **[07-indexeddb.zip](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion08/07-indexeddb.zip)**.
++ **[IndexedDB](https://developer.mozilla.org/es/docs/Web/API/IndexedDB_API)**.
+1. Crear **07-indexeddb\index.html**:
+    ```html
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>Reforzamiento sobre indexeddb</title>
+    </head>
+    <body>
+        <script src="./app.js"></script>
+    </body>
+    </html>    
+    ```
+2. Crear **07-indexeddb\app.js**:
+    ```js
+    // indexedDB: Reforzamiento
+    // Creación de la base de datos mi-database
+    let request = window.indexedDB.open('mi-database', 1);
+
+    // Se actualiza cuando se crea o se sube de versión de la DB.
+    request.onupgradeneeded = event => {
+        console.log('Actualización de DB');
+
+        let db = event.target.result;
+        db.createObjectStore('heroes', {
+            keyPath: 'id'
+        });
+    };    
+    ```
+
+### 90. Manejo de errores e inserción de registros
+1. Modificar **07-indexeddb\app.js**:
+    ```js
+    // indexedDB: Reforzamiento
+    // Creación de la base de datos mi-database
+    let request = window.indexedDB.open('mi-database', 1);
+
+    // Actualización: Se actualiza cuando se crea o se sube de versión de la DB.
+    request.onupgradeneeded = event => {
+        console.log('Actualización de DB');
+
+        let db = event.target.result;
+
+        // Creando tabla heroes
+        db.createObjectStore('heroes', {
+            keyPath: 'id'
+        });
+    };
+
+    // Manejo de errores
+    request.onerror = event => {
+        console.log('DB error:', event.target.error);
+    };
+
+    // Insertar datos
+    request.onsuccess = event => {
+        let db = event.target.result;
+        let heroesData = [
+            { id: '1111', heroe: 'Spiderman', mensaje: 'Aquí su amigo Spiderman' },
+            { id: '2222', heroe: 'Ironman', mensaje: 'Aquí su amigo Ironman' },
+        ];
+
+        let heroesTransaction = db.transaction('heroes', 'readwrite');
+
+        // En caso de error
+        heroesTransaction.onerror = event => {
+            console.log('Error en guardar:', event.target.error);
+        }
+
+        // En caso de exito en la transacción
+        heroesTransaction.oncomplete = event => {
+            console.log('Exito en guardar:', event);
+        }
+
+        // Lugar de almacenamiento
+        let heroesStore = heroesTransaction.objectStore('heroes');
+
+        // Insertar registros
+        for (let heroe of heroesData) {
+            heroesStore.add(heroe);
+        }
+
+        // Si la inserción es exitosa
+        heroesStore.onsuccess = event => {
+            console.log('Nuevos registros agregados a la DB');
+        };
+    };
+    ```
+    ::: warning Advertencia
+    Existen librerias que permiten manejar muy facilmente el **indexedDB**.
+    :::
+
+### 91. Código fuente del indexedDB
++ **[07-indexeddb_v0.zip](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion08/07-indexeddb_v0.zip)**.
+
+### 92. PouchDB - Empezando
++ **[Getting Started Guide](https://pouchdb.com/getting-started.html)**.
++ **[pouchdb-getting-started-todo.zip](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion08/pouchdb-getting-started-todo.zip)**.
++ **[Getting+Started+Guide.pdf](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion08/Getting+Started+Guide.pdf)**.
+1. Descargar [pouchdb](https://github.com/pouchdb/pouchdb-getting-started-todo/archive/master.zip).
+2. Descomprimir y renombrar carpeta a **08-pouchdb-todo**.
+3. Modificar **08-pouchdb-todo\index.html**:
+    ```html{4}
+    <!-- ... -->
+    <body>
+        <!-- ... -->
+        <script src="https://cdn.jsdelivr.net/npm/pouchdb@7.3.1/dist/pouchdb.min.js"></script>
+        <script src="https://login.persona.org/include.js"></script>
+        <script src="js/pouchdb-nightly.js"></script>
+        <script src="js/base.js"></script>
+        <script src="js/app.js"></script>
+    </body>
+    <!-- ... -->
+    ```
+    ::: tip Nota
+    Para la configuración inicial de este proyecto nos guiaremos por https://pouchdb.com/getting-started.html
+    :::
+4. Modificar **08-pouchdb-todo\js\app.js**:
+    ```js{4,10-17}
+    // ...
+    // EDITING STARTS HERE (you dont need to edit anything above this line)
+
+	var db = new PouchDB('todos');
+	var remoteCouch = false;
+	var cookie;
+    // ...
+	// We have to create a new todo document and enter it in the database
+	function addTodo(text) {
+		var todo = {
+			_id: new Date().toISOString(),
+			title: text,
+			completed: false
+		};	
+        db.put(todo)
+            .then(console.log('Successfully posted a todo!'))
+            .catch(console.log);
+	}
+    // ...    
+    ```
+
+### 93. Leer registros de la base de datos
+1. Modificar **08-pouchdb-todo\js\app.js**:
+    ```js
+    // ...
+	var remoteCouch = false;
+
+	db.changes({
+		since: 'now',
+		live: true
+	}).on('change', showTodos);    
+    // ...
+    // Show the current list of todos by reading them from the database
+	function showTodos() {
+		db.allDocs({include_docs: true, descending: true})
+			.then(doc => {
+				redrawTodosUI(doc.rows);
+			})
+	}
+    // ...    
+    ```
+
+### 94. Editar y Borrar TODOS
+1. Modificar **08-pouchdb-todo\js\app.js**:
+    ```js
+    // ...
+	// We have to create a new todo document and enter it in the database
+	function addTodo(text) {
+		if (trimmedText.length === 0) return;
+		var todo = {
+			_id: new Date().toISOString(),
+			title: text,
+			completed: false
+		};
+        db.put(todo)
+            .then(console.log('Successfully posted a todo!'))
+            .catch(console.log);	
+	}    
+    // ...
+	function checkboxChanged(todo, event) {
+		todo.completed = event.target.checked;
+		db.put(todo);   //.then(console.log('Registro actualizado'));
+	}
+    // ...
+	// User pressed the delete button for a todo, delete it
+	function deleteButtonPressed(todo) {
+		db.remove(todo);
+	}
+    // ...
+	// The input box when editing a todo has blurred, we should save
+	// the new title or delete the todo if the title is empty
+	function todoBlurred(todo, event) {
+		var trimmedText = event.target.value.trim();
+
+		if (!trimmedText) {
+			db.remove(todo);
+		} else {
+			todo.title = trimmedText;
+			db.put(todo);
+		}
+	}
+    // ...        
+    ```
+
+### 95. Tarea: Transformar nuestra TODO APP en una PWA
+1. Crear **08-pouchdb-todo\sw.js**:
+    ```js
+    importScripts('js/sw-utils.js');
+
+    const STATIC_CACHE      = 'static-v1';
+    const DYNAMIC_CACHE     = 'dynamic-v1';
+    const INMUTABLE_CACHE   = 'inmutable-v1';
+
+    const APP_SHELL = [
+        './',
+        './index.html',
+        './style/base.css',
+        './js/pouchdb-nightly.js',
+        './js/base.js',
+        './js/app.js',
+        './js/sw-utils.js',
+        './style/bg.png',
+        './style/plain_sign_in_blue.png'
+    ];
+
+    const APP_SHELL_INMUTABLE = [
+        'https://cdn.jsdelivr.net/npm/pouchdb@7.3.1/dist/pouchdb.min.js',
+        'https://login.persona.org/include.js'
+    ];
+
+    // Creación de caches
+    self.addEventListener('install', e => {
+        const cacheStatic = caches.open(STATIC_CACHE).then(cache => cache.addAll(APP_SHELL));
+        const cacheInmutable = caches.open(INMUTABLE_CACHE).then(cache => cache.addAll(APP_SHELL_INMUTABLE));
+
+        e.waitUntil(Promise.all([cacheStatic, cacheInmutable]));
+    });
+
+    // Limpieza de caches obsoletos
+    self.addEventListener('activate', e => {
+        const limpieza = caches.keys().then(keys => {
+            keys.forEach(key => {
+                if (key !== STATIC_CACHE && key.includes('static')) {
+                //if (key !== CACHE_STATIC_NAME || key !== CACHE_DYNAMIC_NAME || key !== CACHE_INMUTABLE_NAME) {
+                    return caches.delete(key);
+                }
+
+                if (key !== DYNAMIC_CACHE && key.includes('dynamic')) {
+                    return caches.delete(key);
+                }
+            });
+        });
+
+        e.waitUntil(limpieza);
+    });
+
+    // Estrategias del cache
+    self.addEventListener('fetch', e => {
+        const respuesta = caches.match(e.request).then(res => {
+            if (res) {
+                return res;
+            } else {
+                // console.log(e.request.url);
+                return fetch(e.request).then(newRes => {
+                    return actualizaCacheDinamico(DYNAMIC_CACHE, e.request, newRes);
+                });
+            }
+
+        });
+
+        e.waitUntil(respuesta);
+    });
+    ```
+2. Crear **08-pouchdb-todo\js\sw-utils.js**:
+    ```js
+    // Guardar en el cache dinámico
+    function actualizaCacheDinamico(dynamicCache, req, res) {
+        if(res.ok) {
+            return caches.open(dynamicCache).then(caches => {
+                caches.put(req, res.clone());
+                return res.clone();
+            });
+        } else {
+            return res;
+        }
+    }    
+    ```
+3. Modificar **08-pouchdb-todo\js\app.js**:
+    ```js
+    (function() {
+
+        'use strict';
+
+        // Registro del SW
+        if (navigator.serviceWorker) {
+            navigator.serviceWorker.register('./sw.js');
+        }
+        // ...
+    })(); 
+    ```
+
+### 96. Tarea: Entrenamiento sobre PouchDB
++ **[09-pouchdb-manual+-+TAREA.zip](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion08/09-pouchdb-manual+-+TAREA.zip)**.
+1. Çrear **09-pouchdb-manual\app.js**:
+    ```js
+    // Entrenamiento PouchDB
+
+    // 1- Crear la base de datos
+    // Nombre:  mensajes
+
+    // Objeto a grabar en base de datos
+    let mensaje = {
+        _id: new Date().toISOString(),
+        user: 'spiderman',
+        mensaje: 'Mi tía hizo unos panqueques muy buenos',
+        sincronizado: false
+    };
+
+    // 2- Insertar en la base de datos
+
+    // 3- Leer todos los mensajes offline
+    // Deben aparecer en la consola
+
+    // 4- Cambiar el valor 'sincronizado' de todos los objetos en la BD a TRUE
+
+    // 5- Borrar todos los registros, uno por uno, evaluando
+    // cuales estan sincronizados
+    // deberá de comentar todo el código que actualiza
+    // el campo de la sincronización 
+    ```
+2. Crear **09-pouchdb-manual\index.html**:
+    ```html
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>PouchDB</title>
+    </head>
+    <body>
+        <h1>PouchDB</h1>
+
+        <script src="pouchdb.min.js"></script>
+        <script src="app.js"></script>
+    </body>
+    </html>    
+    ```
+
+### 97. Resolución de la tarea - PouchDB
+1. Modificar **09-pouchdb-manual\app.js**:
+    ```js
+    // Entrenamiento PouchDB
+
+    // 1- Crear la base de datos
+    // Nombre:  mensajes
+    const db = new PouchDB('mensajes');
+
+    // Objeto a grabar en base de datos
+    let mensaje = {
+        _id: new Date().toISOString(),
+        user: 'spiderman',
+        mensaje: 'Mi tía hizo unos panqueques muy buenos',
+        sincronizado: false
+    };
+
+    // 2- Insertar en la base de datos
+    // db.put(mensaje).then(console.log('Registro insertado'));
+
+    // 3- Leer todos los mensajes offline
+    // Deben aparecer en la consola
+    db.allDocs({include_docs: true, descending: false})
+        .then(docs => {
+            "use strict";
+            console.log(docs.rows);
+        });
+
+    // 4- Cambiar el valor 'sincronizado' de todos los objetos en la BD a TRUE
+    /* db.allDocs({include_docs: true, descending: false})
+        .then(docs => {
+            "use strict";
+            docs.rows.forEach(row => {
+                // console.log(row.doc);
+                let doc = row.doc;
+                doc.sincronizado = true;
+                db.put(doc);
+            });
+        }); */
+
+    // 5- Borrar todos los registros, uno por uno, evaluando
+    // cuales estan sincronizados
+    // deberá de comentar todo el código que actualiza
+    // el campo de la sincronización
+    db.allDocs({include_docs: true}).then(docs => {
+        "use strict";
+        docs.rows.forEach(row => {
+            let doc = row.doc;
+            if (doc.sincronizado) {
+                db.remove(doc);
+            }
+        });
+    });
+    ```
+
+### 98. Código fuente de la sección
++ **[Código fuente](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion08/08-pouchdb-todo.zip)**.
+
+
+## Sección 9: Sincronización sin conexión - Offline Synchronization
+### 99. Introducción a la sección
+1 min
+Iniciar
 
 
 
@@ -3062,205 +3482,185 @@ Iniciar
 
 
 
-### 88. Temas puntuales de la sección
+### 100. Temas puntuales de la sección
 1 min
 Reproducir
-### 89. Inicios en indexedDB
-8 min
-Reproducir
-### 90. Manejo de errores e inserción de registros
-9 min
-Iniciar
-### 91. Código fuente del indexedDB
-1 min
-Reproducir
-### 92. PouchDB - Empezando
-8 min
-Reproducir
-### 93. Leer registros de la base de datos
-6 min
-Reproducir
-### 94. Editar y Borrar TODOS
-6 min
-Reproducir
-### 95. Tarea: Transformar nuestra TODO APP en una PWA
-6 min
-Reproducir
-### 96. Tarea: Entrenamiento sobre PouchDB
-4 min
-Reproducir
-### 97. Resolución de la tarea - PouchDB
-10 min
-Iniciar
-### 98. Código fuente de la sección
-1 min
-Reproducir
-
-
-## Sección 9: Sincronización sin conexión - Offline Synchronization
-99. Introducción a la sección
-1 min
-Iniciar
-100. Temas puntuales de la sección
-1 min
-Reproducir
-101. Inicio del proyecto y backend server
+### 101. Inicio del proyecto y backend server
 9 min
 Reproducir
-102. API REST - Get Mensajes
+### 102. API REST - Get Mensajes
 4 min
 Reproducir
-103. Consumir servicio REST - Mostrar mensajes en pantalla
+### 103. Consumir servicio REST - Mostrar mensajes en pantalla
 8 min
 Reproducir
-104. Network with cache fallback - Para las peticiones a nuestra API
+### 104. Network with cache fallback - Para las peticiones a nuestra API
 10 min
 Reproducir
-105. API REST - Post Mensaje
+### 105. API REST - Post Mensaje
 5 min
 Reproducir
-106. Envío de la petición POST
+### 106. Envío de la petición POST
 11 min
 Reproducir
-107. Interceptar un POST y almacenar en indexedDB
+### 107. Interceptar un POST y almacenar en indexedDB
 11 min
 Reproducir
-108. Registrar tarea asíncrona y SYNC del SW
+### 108. Registrar tarea asíncrona y SYNC del SW
 13 min
 Reproducir
-109. Disparar posteos cuando hay conexión a internet
+### 109. Disparar posteos cuando hay conexión a internet
 11 min
 Reproducir
-110. Front-End: Detectar cambios de conexión a internet
+### 110. Front-End: Detectar cambios de conexión a internet
 10 min
 Iniciar
-111. Código fuente de la sección
+### 111. Código fuente de la sección
 1 min
 Reproducir
-112. Introducción a la sección
+
+
+## Sección 10: Notifications - Push Notifications - Push Server
+### 112. Introducción a la sección
 1 min
 Iniciar
-113. Temas puntuales de la sección
+### 113. Temas puntuales de la sección
 1 min
 Reproducir
-114. Introducción al envío de Push Notifications
+### 114. Introducción al envío de Push Notifications
 10 min
 Reproducir
-115. Inicio del proyecto - Push Notifications
+### 115. Inicio del proyecto - Push Notifications
 3 min
 Reproducir
-116. Permisos para notificaciones
+### 116. Permisos para notificaciones
 10 min
 Reproducir
-117. Detalle estético - Mostrar y ocultar botón de las notificaciones
+### 117. Detalle estético - Mostrar y ocultar botón de las notificaciones
 4 min
 Reproducir
-118. Definir los servicios REST necesarios - PUSH - SUBSCRIBE - KEY
+### 118. Definir los servicios REST necesarios - PUSH - SUBSCRIBE - KEY
 5 min
 Reproducir
-119. Generar la llave pública y privada
+### 119. Generar la llave pública y privada
 8 min
 Reproducir
-120. Retornando nuestro KEY de forma segura
+### 120. Retornando nuestro KEY de forma segura
 7 min
 Reproducir
-121. Generar la suscripción
+### 121. Generar la suscripción
 9 min
 Reproducir
-122. Enviar la suscripción al servidor - POST
+### 122. Enviar la suscripción al servidor - POST
 12 min
 Reproducir
-123. Guardar suscripciones en el backend para que sean persistentes
+### 123. Guardar suscripciones en el backend para que sean persistentes
 8 min
 Reproducir
-124. Cancelar la suscripción - Front-End
+### 124. Cancelar la suscripción - Front-End
 5 min
 Reproducir
-125. Configurar web-push
+### 125. Configurar web-push
 14 min
 Reproducir
-126. Opciones de una notificación
+### 126. Opciones de una notificación
 13 min
 Reproducir
-127. Más opciones de las notificaciones
+### 127. Más opciones de las notificaciones
 10 min
 Reproducir
-128. Redireccionando desde la notificación
+### 128. Redireccionando desde la notificación
 13 min
 Reproducir
-129. Borrar suscripciones que ya no son válidas
+### 129. Borrar suscripciones que ya no son válidas
 8 min
 Iniciar
-130. Código fuente de la sección
+### 130. Código fuente de la sección
 1 min
 Reproducir
-131. Introducción a la sección
+
+
+## Sección 11: Recursos Nativos
+### 131. Introducción a la sección
 1 min
 Iniciar
-132. Temas puntuales de la sección
+### 132. Temas puntuales de la sección
 1 min
 Reproducir
-133. Inicio del proyecto - Recursos Nativos
+### 133. Inicio del proyecto - Recursos Nativos
 7 min
 Reproducir
-134. Uso de la Geolocalización
+### 134. Uso de la Geolocalización
 6 min
 Reproducir
-135. POST con las coordenadas y el mapa
+### 135. POST con las coordenadas y el mapa
 6 min
 Reproducir
-136. Mostrar video de la cámara
+### 136. Mostrar video de la cámara
 11 min
 Iniciar
-137. Nota: Camara posterior
+### 137. Nota: Camara posterior
 1 min
 Reproducir
-138. Tomar Foto y apagar cámara
+### 138. Tomar Foto y apagar cámara
 9 min
 Reproducir
-139. Mostrar la fotografía como un mensaje
+### 139. Mostrar la fotografía como un mensaje
 4 min
 Reproducir
-140. Share API
+### 140. Share API
 12 min
 Iniciar
-141. Código fuente de la sección
+### 141. Código fuente de la sección
 1 min
 Reproducir
-142. Introducción a la sección
+
+
+## Sección 12: Bonus: @angular/pwa
+### 142. Introducción a la sección
 1 min
 Iniciar
-143. Temas puntuales de la sección
+### 143. Temas puntuales de la sección
 1 min
 Reproducir
-144. Inicio de proyecto - Angular PWA
+### 144. Inicio de proyecto - Angular PWA
 6 min
 Reproducir
-145. Rutas de nuestra aplicación
+### 145. Rutas de nuestra aplicación
 6 min
 Reproducir
-146. Servicio y manejo de información - Agregar interfaz y URL
+### 146. Servicio y manejo de información - Agregar interfaz y URL
 10 min
 Reproducir
-147. Página del país
+### 147. Página del país
 10 min
 Iniciar
-148. Documentación de @angular/pwa
+### 148. Documentación de @angular/pwa
 1 min
 Reproducir
-149. ng add @angular/pwa
+### 149. ng add @angular/pwa
 9 min
 Reproducir
-150. Configuraciones en el archivo ngsw-config.json
+### 150. Configuraciones en el archivo ngsw-config.json
 12 min
 Iniciar
-151. Código fuente de la sección
+### 151. Código fuente de la sección
 1 min
 Iniciar
-152. Promociones especiales para alumnos
-1 min
-Reproducir
-153. Despedida
+
+
+## Sección 13: Cierre del curso
+### 152. Promociones especiales para alumnos
++ **Más cursos**: Si desean más cursos gratuitos, los tengo listados aquí para que los puedan tomar fácilmente:
+    + [Fernando Herrera - Cursos gratuitos](https://fernando-herrera.com/#/cursos-gratis).
++ Y también aquí pueden encontrar todos mis cursos al menor precio posible siempre, todo el año:
+    + [Fernando Herrera - Cursos de pago al menor precio posible siempre](https://fernando-herrera.com/#/home).
++ **Subir el certificado de Udemy**: Pueden subir su certificado que les genera Udemy a mi página web, y participar en promociones, regalos, otras cosas que se me ocurran, simplemente descarguen el certificado que les genera Udemy y subanlo aquí:
+    + [Logros de Alumnos - Fernando Herrera](https://fernando-herrera.com/#/logros).
++ **Nota**: Si pueden, usen los cupones de mi sitio web, eso me ayuda a mi y ustedes siempre lo tendrán al menor precio possible que puedo dejarlos $9.99.
+
+### 153. Despedida
++ Despedida del curso.
 
 
 ## Utilidades
