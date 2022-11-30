@@ -3471,8 +3471,790 @@ El APP SHELL esto lo necesario que necesita una aplicación para que funcione, c
 
 ## Sección 9: Sincronización sin conexión - Offline Synchronization
 ### 99. Introducción a la sección
++ Sobre la intersección de una petición post cuando no se tiene internet.
+
+### 100. Temas puntuales de la sección
++ Es momento de aplicar lo aprendido en la sección anterior, en nuestra aplicación real, poder grabar información para que posteriormente la sincronicemos con nuestro backend.
++ Adicionalmente tendremos que crear un lugar donde almacenar los mensajes y poder observar los cambios.
++ Esta sección también servirá como reforzamiento de varios temas.
+
+### 101. Inicio del proyecto y backend server
++ **[10-twittor-offline-posting-inicio.zip](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion10/10-twittor-offline-posting-inicio.zip)**.
+1. Crear proyecto **10-twittor-offline-posting** tomando como base el archivo comprimido facilitado anteriormente.
+2. Modificar **10-twittor-offline-posting\package.json**:
+    ```json
+    // ...
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "start": "node server/server.js",
+        "dev2": "./node_modules/nodemon/bin/nodemon.js server/server",
+        "dev": "nodemon server/server.js"
+    },
+    // ...
+    ```
+3. Para levantar el proyecto, ejecutar:
+    + $ cd 10-twittor-offline-posting
+    + $ npm install
+    + $ npm run dev
+
+### 102. API REST - Get Mensajes
++ **[Postman](https://www.postman.com/downloads)**.
+1. Modificar **10-twittor-offline-posting\server\routes.js**:
+    ```js{5-11,15-16}
+    // Routes.js - Módulo de rutas
+    var express = require('express');
+    var router = express.Router();
+
+    const mensajes = [
+        {
+            _id: 'XYZ',
+            user: 'spiderman',
+            mensaje: 'Hola mundo'
+        }
+    ];
+
+    // Get mensajes
+    router.get('/', function (req, res) {
+        // res.json('Obteniendo mensajes');
+        res.json(mensajes);
+    });
+
+    module.exports = router;    
+    ```
+2. Para probar, realizar petición http:
+    + URL: http://localhost:3000/api
+    + Método: GET
+
+### 103. Consumir servicio REST - Mostrar mensajes en pantalla
+1. Modificar **10-twittor-offline-posting\public\js\app.js**:
+    ```js
+    var url = window.location.href;
+    var swLocation = '/twittor/sw.js';
+
+    if (navigator.serviceWorker) {
+        if (url.includes('localhost')) {
+            swLocation = '/sw.js';
+        }
+        navigator.serviceWorker.register(swLocation);
+    }
+
+    // Referencias de jQuery
+    var titulo      = $('#titulo');
+    var nuevoBtn    = $('#nuevo-btn');
+    var salirBtn    = $('#salir-btn');
+    var cancelarBtn = $('#cancel-btn');
+    var postBtn     = $('#post-btn');
+    var avatarSel   = $('#seleccion');
+    var timeline    = $('#timeline');
+
+    var modal       = $('#modal');
+    var modalAvatar = $('#modal-avatar');
+    var avatarBtns  = $('.seleccion-avatar');
+    var txtMensaje  = $('#txtMensaje');
+
+    // El usuario, contiene el ID del hÃ©roe seleccionado
+    var usuario;
+
+    // ===== Codigo de la aplicación
+    function crearMensajeHTML(mensaje, personaje) {
+        var content =`
+        <li class="animated fadeIn fast">
+            <div class="avatar">
+                <img src="img/avatars/${ personaje }.jpg">
+            </div>
+            <div class="bubble-container">
+                <div class="bubble">
+                    <h3>@${ personaje }</h3>
+                    <br/>
+                    ${ mensaje }
+                </div>
+                
+                <div class="arrow"></div>
+            </div>
+        </li>
+        `;
+        timeline.prepend(content);
+        cancelarBtn.click();
+    }
+
+    // Globals
+    function logIn(ingreso) {
+        if (ingreso) {
+            nuevoBtn.removeClass('oculto');
+            salirBtn.removeClass('oculto');
+            timeline.removeClass('oculto');
+            avatarSel.addClass('oculto');
+            modalAvatar.attr('src', 'img/avatars/' + usuario + '.jpg');
+        } else {
+            nuevoBtn.addClass('oculto');
+            salirBtn.addClass('oculto');
+            timeline.addClass('oculto');
+            avatarSel.removeClass('oculto');
+            titulo.text('Seleccione Personaje');
+        }
+    }
+
+    // Seleccion de personaje
+    avatarBtns.on('click', function() {
+        usuario = $(this).data('user');
+        titulo.text('@' + usuario);
+        logIn(true);
+    });
+
+    // Boton de salir
+    salirBtn.on('click', function() {
+        logIn(false);
+    });
+
+    // Boton de nuevo mensaje
+    nuevoBtn.on('click', function() {
+        modal.removeClass('oculto');
+        modal.animate({ 
+            marginTop: '-=1000px',
+            opacity: 1
+        }, 200 );
+    });
+
+    // Boton de cancelar mensaje
+    cancelarBtn.on('click', function() {
+        if (!modal.hasClass('oculto')) {
+            modal.animate({ 
+                marginTop: '+=1000px',
+                opacity: 0
+            }, 200, function() {
+                modal.addClass('oculto');
+                txtMensaje.val('');
+            });
+        }
+    });
+
+    // Botón de enviar mensaje
+    postBtn.on('click', function() {
+        var mensaje = txtMensaje.val();
+        if (mensaje.length === 0) {
+            cancelarBtn.click();
+            return;
+        }
+        crearMensajeHTML(mensaje, usuario);
+    });
+
+    // Obtener mensaje del servidor
+    function getMensajes() {
+        fetch('api')
+            .then(res => res.json())
+            .then(posts => {
+                console.log(posts);
+                posts.forEach(post => crearMensajeHTML(post.mensaje, post.user));
+            });
+    }
+
+    getMensajes();    
+    ```
+2. Modificar **10-twittor-offline-posting\public\index.html**:
+    ```html
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, height=device-height, viewport-fit=cover">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>Twittor</title>
+        <link href='https://fonts.googleapis.com/css?family=Quicksand:300,400' rel='stylesheet' type='text/css'>
+        <link href='https://fonts.googleapis.com/css?family=Lato:400,300' rel='stylesheet' type='text/css'>
+        <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css">
+        <link rel="stylesheet" href="css/style.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.css">
+        <link rel="shortcut icon" type="image/ico" href="img/favicon.ico"/>
+        <link rel="manifest" href="manifest.json">
+        <!-- Android -->
+        <meta name="theme-color" content="#3498db">
+        <!-- IOS -->
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="apple-touch-icon" href="img/icons/icon-192x192.png">
+        <link rel="apple-touch-icon" sizes="152x152" href="img/icons/icon-152x152.png">
+        <link rel="apple-touch-icon" sizes="180x180" href="img/icons/icon-192x192.png">
+        <link rel="apple-touch-icon" sizes="167x167" href="img/icons/icon-152x152.png">
+        <!-- iPhone X (1125px x 2436px) -->
+        <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="img/icons-ios/apple-launch-1125x2436.png">
+        <!-- iPhone 8, 7, 6s, 6 (750px x 1334px) -->
+        <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="img/icons-ios/apple-launch-750x1334.png">
+        <!-- iPhone 8 Plus, 7 Plus, 6s Plus, 6 Plus (1242px x 2208px) -->
+        <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" href="img/icons-ios/apple-launch-1242x2208.png">
+        <!-- iPhone 5 (640px x 1136px) -->
+        <link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="img/icons-ios/apple-launch-640x1136.png">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        <meta name="apple-mobile-web-app-title" content="Twittor!">
+    </head>
+    <body>
+            <!-- Titulo -->
+            <span class="first"> 
+                <span id="salir-btn" class="fa fa-sign-out-alt out oculto animated fadeIn"></span>
+                <span id="titulo">
+                    <i class="fa fa-user"></i>
+                    Seleccione Personaje
+                </span>
+                <span id="nuevo-btn" class="fa fa-pen-square new oculto animated fadeIn fast"></span>
+            </span>
+            <!-- Fin Titulo -->
+
+            <!-- Modal -->
+            <div id="modal" class="oculto">
+                <img id="modal-avatar" src="img/avatars/spiderman.jpg">
+                <span class="first"> 
+                    <span id="titulo-modal">Nuevo mensaje</span>
+                    <span id="cancel-btn" class="fa fa-times"></span>
+                </span>
+                <div class="nuevo-mensaje">
+                    <textarea id="txtMensaje" placeholder="Nuevo mensaje..." rows="5"></textarea>
+                </div>
+                <!-- boton de enviar -->
+                <div id="post-btn" class="fab">
+                    <i class="fa fa-paper-plane"></i>
+                </div>
+                <div id="post-btn" class="fab-marker">
+                    <i class="fa fa-map-marker-alt"></i>
+                </div>
+                <div id="post-btn" class="fab-photo">
+                    <i class="fa fa-image"></i>
+                </div>
+            </div>
+            <!-- Fin Modal -->
+
+            <!-- Seleccion de personaje -->
+            <div id="seleccion" class="seleccion animated fadeIn fast" align="center">
+                <div>
+                    <img data-user="spiderman" src="img/avatars/spiderman.jpg" alt="spiderman" class="seleccion-avatar">
+                </div>
+                <div>
+                    <img data-user="ironman" src="img/avatars/ironman.jpg" alt="ironman" class="seleccion-avatar">
+                </div>
+                <div>
+                    <img data-user="wolverine" src="img/avatars/wolverine.jpg" alt="wolverine" class="seleccion-avatar">
+                </div>
+                <div>
+                    <img data-user="thor" src="img/avatars/thor.jpg" alt="thor" class="seleccion-avatar">
+                </div>
+                <div>
+                    <img data-user="hulk" src="img/avatars/hulk.jpg" alt="hulk" class="seleccion-avatar">
+                </div>
+            </div>
+            <!-- FIN Seleccion de personaje -->
+
+            <!-- Lista de mensajes -->
+            <ul id="timeline" class="timeline oculto">
+            </ul>
+            <!-- Fin Lista de mensajes -->
+
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+            <script src="js/app.js"></script>
+    </body>
+    </html>    
+    ```
+
+### 104. Network with cache fallback - Para las peticiones a nuestra API
+1. Modificar **10-twittor-offline-posting\public\sw.js**:
+    ```js
+    // imports
+    importScripts('js/sw-utils.js');
+
+    const STATIC_CACHE    = 'static-v1';
+    const DYNAMIC_CACHE   = 'dynamic-v1';
+    const INMUTABLE_CACHE = 'inmutable-v1';
+
+    const APP_SHELL = [
+        '/',
+        'index.html',
+        'css/style.css',
+        'img/favicon.ico',
+        'img/avatars/hulk.jpg',
+        'img/avatars/ironman.jpg',
+        'img/avatars/spiderman.jpg',
+        'img/avatars/thor.jpg',
+        'img/avatars/wolverine.jpg',
+        'js/app.js',
+        'js/sw-utils.js'
+    ];
+
+    const APP_SHELL_INMUTABLE = [
+        'https://fonts.googleapis.com/css?family=Quicksand:300,400',
+        'https://fonts.googleapis.com/css?family=Lato:400,300',
+        'https://use.fontawesome.com/releases/v5.3.1/css/all.css',
+        'https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.css',
+        'https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js'
+    ];
+
+    self.addEventListener('install', e => {
+        const cacheStatic = caches.open(STATIC_CACHE).then(cache => 
+            cache.addAll(APP_SHELL));
+        const cacheInmutable = caches.open(INMUTABLE_CACHE).then(cache => 
+            cache.addAll(APP_SHELL_INMUTABLE));
+        e.waitUntil(Promise.all([cacheStatic, cacheInmutable]));
+    });
+
+    self.addEventListener('activate', e => {
+        const respuesta = caches.keys().then( keys => {
+            keys.forEach(key => {
+                if (key !== STATIC_CACHE && key.includes('static')) {
+                    return caches.delete(key);
+                }
+                if (key !== DYNAMIC_CACHE && key.includes('dynamic')) {
+                    return caches.delete(key);
+                }
+            });
+        });
+        e.waitUntil(respuesta);
+    });
+
+    self.addEventListener( 'fetch', e => {
+        let respuesta;
+        if (e.request.url.includes('/api')) {
+            respuesta = manejoApiMensajes(DYNAMIC_CACHE, e.request);
+        } else {
+            respuesta = caches.match(e.request).then(res => {
+                if (res) {
+                    actualizaCacheStatico(STATIC_CACHE, e.request, APP_SHELL_INMUTABLE);
+                    return res;
+                } else {
+                    return fetch(e.request).then(newRes => {
+                        return actualizaCacheDinamico(DYNAMIC_CACHE, e.request, newRes);
+                    });
+                }
+            });
+        }
+        e.respondWith(respuesta);
+    });
+    ```
+2. Modificar **10-twittor-offline-posting\public\js\sw-utils.js**:
+    ```js
+    // Guardar en el cache dinámico
+    function actualizaCacheDinamico(dynamicCache, req, res) {
+        if (res.ok) {
+            return caches.open(dynamicCache).then(cache => {
+                cache.put(req, res.clone());
+                return res.clone();
+            });
+        } else {
+            return res;
+        }
+    }
+
+    // Cache with network update
+    function actualizaCacheStatico(staticCache, req, APP_SHELL_INMUTABLE) {
+        if (APP_SHELL_INMUTABLE.includes(req.url)) {
+            // No hace falta actualizar el inmutable
+            // console.log('existe en inmutable', req.url );
+        } else {
+            // console.log('actualizando', req.url );
+            return fetch(req)
+                .then(res => {
+                    return actualizaCacheDinamico(staticCache, req, res);
+                });
+        }
+    }
+
+    // Network with cache fallback / update
+    function manejoApiMensajes(cacheName, req) {
+        return fetch(req).then(res => {
+            if (res.ok) {
+                actualizaCacheDinamico(cacheName, req, res.clone());
+                return res.clone();
+            } else {
+                return caches.match(req);
+            }
+        }).catch(err => {
+            return caches.match(req);
+        });
+    }    
+    ```
+
+### 105. API REST - Post Mensaje
++ **[body-parser.txt](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion10/body-parser.txt)**.
+1. Ejecutar:
+    + $ npm install body-parser --save
+2. Modificar **10-twittor-offline-posting\server\server.js**:
+    ```js
+    const express = require('express');
+    const bodyParser = require('body-parser');
+    const path = require('path');
+    const app = express();
+    const publicPath = path.resolve(__dirname, '../public');
+    const port = process.env.PORT || 3000;
+
+    app.use(bodyParser.json()); // support json encoded bodies
+    app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
+
+    // Directorio Público
+    app.use(express.static(publicPath));
+
+    // Rutas 
+    const routes = require('./routes');
+    app.use('/api', routes);
+
+    app.listen(port, (err) => {
+        if (err) throw new Error(err);
+        console.log(`Servidor corriendo en puerto ${ port }`);
+    });    
+    ```
+3. Modificar **10-twittor-offline-posting\server\routes.js**:
+    ```js
+    // Routes.js - Módulo de rutas
+    var express = require('express');
+    var router = express.Router();
+
+    const mensajes = [
+        {
+            _id: 'XYZ',
+            user: 'spiderman',
+            mensaje: 'Hola mundo'
+        }
+    ];
+
+    // Get mensajes
+    router.get('/', function (req, res) {
+        // res.json('Obteniendo mensajes');
+        res.json(mensajes);
+    });
+
+    // Post mensajes
+    router.post('/', function (req, res) {
+        const mensaje = {
+            mensaje: req.body.mensaje,
+            user: req.body.user
+        };
+        mensajes.push(mensaje);
+        res.json({
+            ok: true,
+            mensaje
+        });
+    });
+
+    module.exports = router;    
+    ```
+4. Para probar, realizar petición http:
+    + URL: http://localhost:3000/api
+    + Método: POST
+    + Body: 
+        ```json
+        {
+            "mensaje": "Prueba Soluciones++",
+            "user": "hulk"
+        }
+        ```
+
+### 106. Envío de la petición POST
+1. Modificar **10-twittor-offline-posting\public\js\app.js**:
+    ```js
+    // ...
+    // Boton de enviar mensaje
+    postBtn.on('click', function() {
+        var mensaje = txtMensaje.val();
+        if (mensaje.length === 0) {
+            cancelarBtn.click();
+            return;
+        }
+        var data = {
+            mensaje: mensaje,
+            user: usuario
+        };
+        fetch('api', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify( data )
+        })
+        .then(res => res.json())
+        .then(res => console.log( 'app.js', res))
+        .catch(err => console.log( 'app.js error:', err));
+
+        crearMensajeHTML(mensaje, usuario);
+    });
+    // ...    
+    ```
+2. Modificar **10-twittor-offline-posting\server\routes.js**:
+    ```js
+    // ...
+    // Post mensajes
+    router.post('/', function (req, res) {
+        const mensaje = {
+            mensaje: req.body.mensaje,
+            user: req.body.user
+        };
+        mensajes.push(mensaje);
+        console.log(mensajes);
+        res.json({
+            ok: true,
+            mensaje
+        });
+    });
+
+    module.exports = router;    
+    ```
+3. Modificar **10-twittor-offline-posting\public\js\sw-utils.js**:
+    ```js
+    // ...
+    // Network with cache fallback / update
+    function manejoApiMensajes(cacheName, req) {
+        if (req.clone().method === 'POST') {
+            // Manejo del posteo de un nuevo mensaje
+            return fetch(req);
+        } else {
+            return fetch(req).then(res => {
+                if (res.ok) {
+                    actualizaCacheDinamico(cacheName, req, res.clone());
+                    return res.clone();
+                } else {
+                    return caches.match(req);
+                }
+            }).catch(err => {
+                return caches.match(req);
+            });
+        }
+    }    
+    ```
+4. Modificar **10-twittor-offline-posting\public\sw.js**:
+    ```js{4}
+    // imports
+    importScripts('js/sw-utils.js');
+
+    const STATIC_CACHE    = 'static-v2';
+    // ...
+    ```
+
+### 107. Interceptar un POST y almacenar en indexedDB
+1. Modificar **10-twittor-offline-posting\public\js\sw-utils.js**:
+    ```js
+    // ...
+    // Network with cache fallback / update
+    function manejoApiMensajes(cacheName, req) {
+        if (req.clone().method === 'POST') {
+            // Manejo del posteo de un nuevo mensaje
+            req.clone().text(body => {
+                // console.log(body);
+                const bodyObj = JSON.parse(body);
+                guardarMensaje(bodyObj);
+            });
+            return fetch(req);
+        } else {
+            return fetch(req).then(res => {
+                if (res.ok) {
+                    actualizaCacheDinamico(cacheName, req, res.clone());
+                    return res.clone();
+                } else {
+                    return caches.match(req);
+                }
+            }).catch(err => {
+                return caches.match(req);
+            });
+        }
+    }    
+    ```
+2. Crear **10-twittor-offline-posting\public\js\sw-db.js**:
+    ```js
+    // Utilidades para grabar PouchDB
+    const db = new PouchDB('mensajes');
+
+    function guardarMensaje( mensaje ) {
+        mensaje._id = new Date().toISOString();
+        db.put(mensaje).then(() => {
+            console.log('Mensaje guardado para posterior posteo');
+        });
+    }    
+    ```
+3. Modificar **10-twittor-offline-posting\public\sw.js**:
+    ```js
+    // imports
+    importScripts('https://cdn.jsdelivr.net/npm/pouchdb@7.0.0/dist/pouchdb.min.js');
+    importScripts('js/sw-db.js');
+    // ...
+    const APP_SHELL = [
+        // ...
+    ];
+
+    const APP_SHELL_INMUTABLE = [
+        // ...
+        'https://cdn.jsdelivr.net/npm/pouchdb@7.0.0/dist/pouchdb.min.js'
+    ];
+    // ...
+    ```
+
+### 108. Registrar tarea asíncrona y SYNC del SW
+1. Modificar **10-twittor-offline-posting\public\js\sw-utils.js**:
+    ```js
+    // ...
+    // Network with cache fallback / update
+    function manejoApiMensajes(cacheName, req) {
+        if (req.clone().method === 'POST') {
+            // Manejo del posteo de un nuevo mensaje
+            if (self.registration.sync) {
+                return req.clone().text(body => {
+                    // console.log(body);
+                    const bodyObj = JSON.parse(body);
+                    return guardarMensaje(bodyObj);
+                });
+            } else {
+                return fetch(req);
+            }
+        } else {
+            return fetch(req).then(res => {
+                if (res.ok) {
+                    actualizaCacheDinamico(cacheName, req, res.clone());
+                    return res.clone();
+                } else {
+                    return caches.match(req);
+                }
+            }).catch(err => {
+                return caches.match(req);
+            });
+        }
+    }    
+    ```
+2. Modificar **10-twittor-offline-posting\public\js\sw-db.js**:
+    ```js
+    // Utilidades para grabar PouchDB
+    const db = new PouchDB('mensajes');
+
+    function guardarMensaje( mensaje ) {
+        mensaje._id = new Date().toISOString();
+        return db.put( mensaje ).then( () => {
+            self.registration.sync.register('nuevo-post');
+            const newResp = { ok: true, offline: true };
+            return new Response( JSON.stringify(newResp) );
+        });
+    }    
+    ```
+3. Modificar **10-twittor-offline-posting\public\sw.js**:
+    ```js
+    // ...
+    // Tareas asincronas
+    self.addEventListener('sync', e => {
+        console.log('SW: sync');
+        if(e.tag === 'nuevo-post') {
+            // Postear a DB cuando hay conexión
+        }
+    });    
+    ```
+
+### 109. Disparar posteos cuando hay conexión a internet
+1. Modificar **10-twittor-offline-posting\public\sw.js**:
+    ```js
+    // ...
+    // Tareas asincronas
+    self.addEventListener('sync', e => {
+        console.log('SW: sync');
+        if(e.tag === 'nuevo-post') {
+            // Postear a DB cuando hay conexión
+            const respuesta = postearMensaje();
+            e.waitUntil(respuesta);
+        }
+    });    
+    ```
+2. Modificar **10-twittor-offline-posting\public\js\sw-db.js**:
+    ```js
+    // ...
+    // Postear mensajes a la API
+    function postearMensaje() {
+        const posteos = [];
+        return db.allDocs({ include_docs: true }).then( docs => {
+            docs.rows.forEach( row => {
+                const doc = row.doc;
+                const fetchPom =  fetch('api', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(doc)
+                    }).then( res => {
+                        return db.remove(doc);
+                    });
+                posteos.push(fetchPom);
+            }); // fin del foreach
+            return Promise.all(posteos);
+        });
+    }    
+    ```
+
+### 110. Front-End: Detectar cambios de conexión a internet
++ **[GitHub dmuy/Material-Toast](https://github.com/dmuy/Material-Toast)**.
++ **[Material-Toast-master.zip](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion10/Material-Toast-master.zip)**.
+1. Modificar **10-twittor-offline-posting\public\js\app.js**:
+    ```js
+    // ...
+    // Detectar cambios de conexión
+    function isOnline() {
+        if (navigator.onLine) {
+            // tenemos conexión
+            // console.log('online');
+            $.mdtoast('Online', {
+                interaction: true,
+                interactionTimeout: 1000,
+                actionText: 'OK!'
+            });
+        } else{
+            // No tenemos conexión
+            $.mdtoast('Offline', {
+                interaction: true,
+                actionText: 'OK',
+                type: 'warning'
+            });
+        }
+    }
+
+    window.addEventListener('online', isOnline);
+    window.addEventListener('offline', isOnline);
+
+    isOnline();    
+    ```
+2. Modificar **10-twittor-offline-posting\public\index.html**:
+    ```html{6,12}
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <!-- ... -->
+        <link rel="stylesheet" href="css/style.css">
+        <link rel="stylesheet" href="js/libs/plugins/mdtoast.min.css">
+        <!-- ... -->
+    </head>
+    <body>
+        <!-- ... -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+        <script src="js/libs/plugins/mdtoast.min.js"></script>
+        <script src="js/app.js"></script>
+    </body>
+    </html>    
+    ```
+3. Modificar **10-twittor-offline-posting\public\sw.js**:
+    ```js{14-15}
+    // ...
+    const APP_SHELL = [
+        '/',
+        'index.html',
+        'css/style.css',
+        'img/favicon.ico',
+        'img/avatars/hulk.jpg',
+        'img/avatars/ironman.jpg',
+        'img/avatars/spiderman.jpg',
+        'img/avatars/thor.jpg',
+        'img/avatars/wolverine.jpg',
+        'js/app.js',
+        'js/sw-utils.js',
+        'js/libs/plugins/mdtoast.min.css',
+        'js/libs/plugins/mdtoast.min.js'
+    ];
+    // ...    
+    ```
+
+### 111. Código fuente de la sección
++ **[Código fuente](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion10/10-twittor-offline-posting.zip)**.
+
+
+## Sección 10: Notifications - Push Notifications - Push Server
+### 112. Introducción a la sección
 1 min
 Iniciar
+
+
+
 
 
 
@@ -3482,48 +4264,6 @@ Iniciar
 
 
 
-### 100. Temas puntuales de la sección
-1 min
-Reproducir
-### 101. Inicio del proyecto y backend server
-9 min
-Reproducir
-### 102. API REST - Get Mensajes
-4 min
-Reproducir
-### 103. Consumir servicio REST - Mostrar mensajes en pantalla
-8 min
-Reproducir
-### 104. Network with cache fallback - Para las peticiones a nuestra API
-10 min
-Reproducir
-### 105. API REST - Post Mensaje
-5 min
-Reproducir
-### 106. Envío de la petición POST
-11 min
-Reproducir
-### 107. Interceptar un POST y almacenar en indexedDB
-11 min
-Reproducir
-### 108. Registrar tarea asíncrona y SYNC del SW
-13 min
-Reproducir
-### 109. Disparar posteos cuando hay conexión a internet
-11 min
-Reproducir
-### 110. Front-End: Detectar cambios de conexión a internet
-10 min
-Iniciar
-### 111. Código fuente de la sección
-1 min
-Reproducir
-
-
-## Sección 10: Notifications - Push Notifications - Push Server
-### 112. Introducción a la sección
-1 min
-Iniciar
 ### 113. Temas puntuales de la sección
 1 min
 Reproducir
