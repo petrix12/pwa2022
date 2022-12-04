@@ -4250,8 +4250,487 @@ El APP SHELL esto lo necesario que necesita una aplicación para que funcione, c
 
 ## Sección 10: Notifications - Push Notifications - Push Server
 ### 112. Introducción a la sección
++ Sobre la implementación de Push Notifications.
+
+### 113. Temas puntuales de la sección
++ Esta sección es quizá una de las más solicitadas por los alumnos, aquí vamos a crear todo lo necesario para enviar y recibir notificaciones push a nuestros clientes suscritos a nuestra aplicación.
++ Aprenderemos desde cómo enviar hasta como recibir una notificación push, desde cómo configurar nuestro backend hasta cómo borrar suscripciones que ya no nos interesan.
++ Es una sección delicada, por lo que es necesario prestar mucha atención y es vital que al terminar cada video, el resultado que ustedes tengan sea el mismo al mío para que no arrastremos un problema.
+
+### 114. Introducción al envío de Push Notifications
++ Más sobre notificaciones push.
+
+### 115. Inicio del proyecto - Push Notifications
++ **[11-twittor-con-push v115.zip](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion11/11-twittor-con-push-v115.zip)**.
+1. Tomar como base el proyecto anterior **10-twittor-offline-posting** y renombrarlo **11-twittor-con-push**.
+2. Modificar **11-twittor-con-push\public\index.html**:
+    ```html{5-6}
+    <!-- ... -->
+    <!-- Seleccion de personaje -->
+    <div id="seleccion" class="seleccion animated fadeIn fast" align="center">
+        <!-- Botón de notificaciones -->
+        <button class="btn-noti-activadas">Notificaciones Activadas</button>
+        <button class="btn-noti-desactivadas">Notificaciones Desactivadas</button>
+        <!-- Fin de boton de notificaciones -->
+        <!-- ... -->
+    </div>
+    <!-- FIN Seleccion de personaje -->
+    <!-- ... -->  
+    ```
+3. Modificar **11-twittor-con-push\public\css\style.css**:
+    ```css
+    /* ... */
+    /* Personalizados */
+    button {
+        width: 80%;
+        border-radius: 5px;
+        border: none;
+        padding: 5px;
+        color: white;
+        font-size: 14px;
+    }
+
+    .btn-noti-activadas {
+        background-color: #3498db;
+    }
+
+    .btn-noti-desactivadas {
+        background-color: red;
+    }
+    /* ... */
+    ```
+4. Modificar **11-twittor-con-push\server\server.js**:
+    ```js{3-7}
+    // ...
+    // Enable CORS
+    app.use(function(req, res, next) {
+        res.header("Access-Control-Allow-Origin", "*");
+        res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+        next();
+    });
+
+    // Directorio Público
+    app.use(express.static(publicPath));
+    // ...
+    ```
+
+### 116. Permisos para notificaciones
+1. Modificar **11-twittor-con-push\public\js\app.js**:
+    ```js
+    // ...
+    // Notificaciones
+    function enviarNotificacion() {
+        const notificationOpts = {
+            body: 'Este es el cuerpo de la notificación',
+            icon: 'img/icons/icon-72x72.png'
+        };
+        const n = new Notification('Hola Mundo', notificationOpts);
+        n.onclick = () => {
+            console.log('Click');
+        };
+    }
+
+    function notificarme() {
+        if ( !window.Notification ) {
+            console.log('Este navegador no soporta notificaciones');
+            return;
+        }
+        if ( Notification.permission === 'granted' ) {
+            // new Notification('Hola Mundo! - granted');
+            enviarNotificacion();
+        } else if ( Notification.permission !== 'denied' || Notification.permission === 'default' )  {
+            Notification.requestPermission( function( permission ) {
+                console.log( permission );
+                if ( permission === 'granted' ) {
+                    // new Notification('Hola Mundo! - pregunta');
+                    enviarNotificacion();
+                }
+            });
+        }
+    }
+
+    notificarme();    
+    ```
+
+### 117. Detalle estético - Mostrar y ocultar botón de las notificaciones
+1. Modificar **11-twittor-con-push\public\js\app.js**:
+    ```js
+    // ...
+    // Referencias de jQuery
+    // ...
+    var btnActivadas = $('.btn-noti-activadas');
+    var btnDesactivadas = $('.btn-noti-desactivadas');
+    // ...
+    // Notificaciones
+    function verificaSuscripcion( activadas ) {
+        if ( activadas ) {
+            btnActivadas.removeClass('oculto');
+            btnDesactivadas.addClass('oculto');
+        } else {
+            btnActivadas.addClass('oculto');
+            btnDesactivadas.removeClass('oculto');
+        }
+    }
+
+    verificaSuscripcion();
+
+    function enviarNotificacion() {
+        const notificationOpts = {
+            body: 'Este es el cuerpo de la notificación',
+            icon: 'img/icons/icon-72x72.png'
+        };
+        const n = new Notification('Hola Mundo', notificationOpts);
+        n.onclick = () => {
+            console.log('Click');
+        };
+    }
+
+    function notificarme() {
+        if ( !window.Notification ) {
+            console.log('Este navegador no soporta notificaciones');
+            return;
+        }
+        if ( Notification.permission === 'granted' ) {
+            // new Notification('Hola Mundo! - granted');
+            enviarNotificacion();
+        } else if ( Notification.permission !== 'denied' || Notification.permission === 'default' )  {
+            Notification.requestPermission( function( permission ) {
+                console.log( permission );
+                if ( permission === 'granted' ) {
+                    // new Notification('Hola Mundo! - pregunta');
+                    enviarNotificacion();
+                }
+            });
+        }
+    }
+
+    // notificarme();    
+    ```
+2. Modificar **11-twittor-con-push\public\index.html**:
+    ```html
+    <!-- ... -->
+    <!-- Botón de notificaciones -->
+    <button class="oculto btn-noti-activadas">Notificaciones Activadas</button>
+    <button class="oculto btn-noti-desactivadas">Notificaciones Desactivadas</button>
+    <!-- Fin de boton de notificaciones -->
+    <!-- ... -->
+    ```
+
+### 118. Definir los servicios REST necesarios - PUSH - SUBSCRIBE - KEY
+1. Modificar **11-twittor-con-push\server\routes.js**:
+    ```js{1-26}
+    // Almacenar la suscripción
+    router.post('/subscribe', (req, res) => {
+        const suscripcion = req.body;
+        push.addSubscription(suscripcion);
+        res.json('subscribe');  
+    });
+
+    // Almacenar la suscripción
+    router.get('/key', (req, res) => {
+        const key = push.getKey();
+        res.send(key);
+    });
+
+    // Envar una notificación PUSH a las personas
+    // que nosotros queramos
+    // ES ALGO que se controla del lado del server
+    router.post('/push', (req, res) => {
+        const post = {
+            titulo: req.body.titulo,
+            cuerpo: req.body.cuerpo,
+            usuario: req.body.usuario
+        };
+        push.sendPush(post);
+        res.json(post);
+    });
+
+    module.exports = router;    
+    ```
+
+### 119. Generar la llave pública y privada
++ **[npm web-push](https://www.npmjs.com/package/web-push)**.
+1. Instalar dependencia web-push:
+    + $ npm i web-push
+2. Modificar **11-twittor-con-push\package.json**:
+    ```json{5}
+    // ...
+    "scripts": {
+        // ...
+        "dev": "nodemon server/server.js",
+        "generate-vapid": "./node_modules/web-push/src/cli.js generate-vapid-keys --json > server/vapid.json"
+    },
+    // ...    
+    ```
+3. Ejecutar:
+    + $ npm run generate-vapid
+    + Obtener **Public Key** y **Private Key** en **11-twittor-con-push\server\vapid.json**.
+4. Crear **11-twittor-con-push\server\push.js**:
+    ```js
+    const fs = require('fs');
+    const urlsafeBase64 = require('urlsafe-base64');
+    const vapid = require('./vapid.json');
+    const webpush = require('web-push');
+
+    webpush.setVapidDetails(
+        'mailto:bazo.pedro@gmail.com',
+        vapid.publicKey,
+        vapid.privateKey
+    );
+
+    let suscripciones = require('./subs-db.json');
+
+    module.exports.getKey = () => {
+        return urlsafeBase64.decode( vapid.publicKey );
+    };
+
+    module.exports.addSubscription = (suscripcion) => {
+        suscripciones.push(suscripcion);
+        fs.writeFileSync(`${ __dirname }/subs-db.json`, JSON.stringify(suscripciones));
+    };
+
+    module.exports.sendPush = (post) => {
+        console.log('Mandando PUSHES');
+        const notificacionesEnviadas = [];
+        suscripciones.forEach( (suscripcion, i) => {
+            const pushProm = webpush.sendNotification(suscripcion, JSON.stringify(post))
+                .then(console.log('Notificacion enviada'))
+                .catch( err => {
+                    console.log('Notificación falló');
+                    if (err.statusCode === 410) { // GONE, ya no existe
+                        suscripciones[i].borrar = true;
+                    }
+                });
+            notificacionesEnviadas.push(pushProm);
+        });
+        Promise.all(notificacionesEnviadas).then( () => {
+            suscripciones = suscripciones.filter(subs => !subs.borrar);
+            fs.writeFileSync(`${ __dirname }/subs-db.json`, JSON.stringify(suscripciones));
+        });
+    }    
+    ```
+5. Modificar **11-twittor-con-push\server\routes.js**:
+    ```js{4}
+    // Routes.js - Módulo de rutas
+    const express = require('express');
+    const router = express.Router();
+    const push = require('./push');
+    // ...    
+    ```
+
+### 120. Retornando nuestro KEY de forma segura
++ **[npm URL Safe Base64](https://www.npmjs.com/package/urlsafe-base64)**.
+1. Ejecutar:
+    + $ npm i urlsafe-base64
+2. Modificar **11-twittor-con-push\public\js\app.js**:
+    ```js
+    // ...
+    // notificarme();
+
+    // Get Key
+    function getPublicKey() {
+        // fetch('api/key')
+        //     .then( res => res.text())
+        //     .then( console.log );
+
+        return fetch('api/key')
+            .then(res => res.arrayBuffer())
+            // returnar arreglo, pero como un Uint8array
+            .then(key => new Uint8Array(key));
+    }    
+    ```
+
+### 121. Generar la suscripción
+1. Modificar **11-twittor-con-push\public\js\app.js**:
+    ```js
+    let url = window.location.href;
+    let swLocation = '/twittor/sw.js';
+    let swReg;
+
+    if (navigator.serviceWorker) {
+        if (url.includes('localhost')) {
+            swLocation = '/sw.js';
+        }
+
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register(swLocation).then(function(reg){
+                swReg = reg;
+                swReg.pushManager.getSubscription().then(verificaSuscripcion);
+            });
+        });
+    }
+    // ...
+    // getPublicKey().then( console.log );
+    btnDesactivadas.on( 'click', function() {
+        if (!swReg) return console.log('No hay registro de SW');
+        getPublicKey().then( function( key ) {
+            swReg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: key
+            })
+            .then(res => res.toJSON())
+            .then(suscripcion => {
+                // console.log(suscripcion);
+                fetch('api/subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(suscripcion)
+                })
+                .then(verificaSuscripcion)
+                .catch(cancelarSuscripcion);
+            });
+        });
+    });    
+    ```
+
+### 122. Enviar la suscripción al servidor - POST
+1. Modificar **11-twittor-con-push\public\js\sw-utils.js**:
+    ```js
+    // ...
+    // Network with cache fallback / update
+    function manejoApiMensajes(cacheName, req) {
+        if ((req.url.indexOf('/api/key') >= 0) || (req.url.indexOf('/api/subscribe') >= 0)) {
+            return fetch(req);
+        } else if (req.clone().method === 'POST') {
+            // Manejo del posteo de un nuevo mensaje
+            if (self.registration.sync) {
+                return req.clone().text(body => {
+                    // console.log(body);
+                    const bodyObj = JSON.parse(body);
+                    return guardarMensaje(bodyObj);
+                });
+            } else {
+                return fetch(req);
+            }
+        } else {
+            return fetch(req).then(res => {
+                if (res.ok) {
+                    actualizaCacheDinamico(cacheName, req, res.clone());
+                    return res.clone();
+                } else {
+                    return caches.match(req);
+                }
+            }).catch(err => {
+                return caches.match(req);
+            });
+        }
+    }    
+    ```
+
+### 123. Guardar suscripciones en el backend para que sean persistentes
+1. Crear **11-twittor-con-push\server\subs-db.json**:
+    ```js
+    []
+    ```
+
+### 124. Cancelar la suscripción - Front-End
+1. Modificar **11-twittor-con-push\public\js\app.js**:
+    ```js
+    // ...
+    function cancelarSuscripcion() {
+        swReg.pushManager.getSubscription().then( subs => {
+            subs.unsubscribe().then(() =>  verificaSuscripcion(false));
+        });
+    }
+
+    btnActivadas.on( 'click', function() {
+        cancelarSuscripcion();
+    });    
+    ```
+
+### 125. Configurar web-push
++ **[npm web-push](https://www.npmjs.com/package/web-push)**.
+1. Ejecutar:
+    + $ npm i web-push
+2. Modificar **11-twittor-con-push\public\sw.js**:
+    ```js
+    // ...
+    // Escuchar PUSH
+    self.addEventListener('push', e => {
+        // console.log(e);
+        const data = JSON.parse( e.data.text() );
+        // console.log(data);
+        const title = data.titulo;
+        const options = {
+            body: data.cuerpo,
+            // icon: 'img/icons/icon-72x72.png',
+            icon: `img/avatars/${ data.usuario }.jpg`,
+            badge: 'img/favicon.ico',
+            image: 'https://vignette.wikia.nocookie.net/marvelcinematicuniverse/images/5/5b/Torre_de_los_Avengers.png/revision/latest?cb=20150626220613&path-prefix=es',
+            vibrate: [125,75,125,275,200,275,125,75,125,275,200,600,200,600],
+            openUrl: '/',
+            data: {
+                // url: 'https://google.com',
+                url: '/',
+                id: data.usuario
+            },
+            actions: [
+                {
+                    action: 'thor-action',
+                    title: 'Thor',
+                    icon: 'img/avatar/thor.jpg'
+                },
+                {
+                    action: 'ironman-action',
+                    title: 'Ironman',
+                    icon: 'img/avatar/ironman.jpg'
+                }
+            ]
+        };
+        e.waitUntil(self.registration.showNotification(title, options));
+    });    
+    ```
+
+### 126. Opciones de una notificación
++ **[Displaying a Notification](https://web.dev/push-notifications-display-a-notification)**.
++ **[Gearside Design](https://gearside.com/custom-vibration-patterns-mobile-devices)**.
+
+### 127. Más opciones de las notificaciones
+1. Modificar **11-twittor-con-push\public\sw.js**:
+    ```js
+    // ...
+    // Cierra la notificacion
+    self.addEventListener('notificationclose', e => {
+        console.log('Notificación cerrada', e);
+    });
+
+    self.addEventListener('notificationclick', e => {
+        const notificacion = e.notification;
+        const accion = e.action;
+        console.log({ notificacion, accion });
+        // console.log(notificacion);
+        // console.log(accion);
+        const respuesta = clients.matchAll()
+        .then( clientes => {
+            let cliente = clientes.find( c => {
+                return c.visibilityState === 'visible';
+            });
+            if ( cliente !== undefined ) {
+                cliente.navigate(notificacion.data.url);
+                cliente.focus();
+            } else {
+                clients.openWindow(notificacion.data.url);
+            }
+            return notificacion.close();
+        });
+        e.waitUntil( respuesta );
+    });    
+    ```
+
+### 128. Redireccionando desde la notificación
+### 129. Borrar suscripciones que ya no son válidas
+### 130. Código fuente de la sección
++ **[Código fuente](https://github.com/petrix12/pwa2022/blob/main/recursos/recursos/seccion11/11-twittor-con-push.zip)**.
+
+
+## Sección 11: Recursos Nativos
+### 131. Introducción a la sección
 1 min
 Iniciar
+
+
+
+
 
 
 
@@ -4264,66 +4743,6 @@ Iniciar
 
 
 
-### 113. Temas puntuales de la sección
-1 min
-Reproducir
-### 114. Introducción al envío de Push Notifications
-10 min
-Reproducir
-### 115. Inicio del proyecto - Push Notifications
-3 min
-Reproducir
-### 116. Permisos para notificaciones
-10 min
-Reproducir
-### 117. Detalle estético - Mostrar y ocultar botón de las notificaciones
-4 min
-Reproducir
-### 118. Definir los servicios REST necesarios - PUSH - SUBSCRIBE - KEY
-5 min
-Reproducir
-### 119. Generar la llave pública y privada
-8 min
-Reproducir
-### 120. Retornando nuestro KEY de forma segura
-7 min
-Reproducir
-### 121. Generar la suscripción
-9 min
-Reproducir
-### 122. Enviar la suscripción al servidor - POST
-12 min
-Reproducir
-### 123. Guardar suscripciones en el backend para que sean persistentes
-8 min
-Reproducir
-### 124. Cancelar la suscripción - Front-End
-5 min
-Reproducir
-### 125. Configurar web-push
-14 min
-Reproducir
-### 126. Opciones de una notificación
-13 min
-Reproducir
-### 127. Más opciones de las notificaciones
-10 min
-Reproducir
-### 128. Redireccionando desde la notificación
-13 min
-Reproducir
-### 129. Borrar suscripciones que ya no son válidas
-8 min
-Iniciar
-### 130. Código fuente de la sección
-1 min
-Reproducir
-
-
-## Sección 11: Recursos Nativos
-### 131. Introducción a la sección
-1 min
-Iniciar
 ### 132. Temas puntuales de la sección
 1 min
 Reproducir
