@@ -5422,48 +5422,39 @@ El APP SHELL esto lo necesario que necesita una aplicación para que funcione, c
 
 ## Sección 12: Bonus: @angular/pwa
 ### 142. Introducción a la sección
-1 min
-Iniciar
 ### 143. Temas puntuales de la sección
-1 min
-Reproducir
++ Esta sección está diseñada para enseñar cómo usar el paquete de @angular/pwa, el cual me han solicitado mucho en preguntas y mensajes privados.
++ Aquí aprenderán cómo usarlo, configurarlo y cómo utilizar la documentación oficial de @angular/pwa, la cual irá expandiendo sus capacidades conforme pase el tiempo.
++ Aquí crearemos una aplicación web de cero, consumiendo servicios e implementando diferentes estrategias de caché que nos ofrece dicho paquete.
+
 ### 144. Inicio de proyecto - Angular PWA
-6 min
-Reproducir
-
-
-
-
-
-
-
-
-
-    ```js
-    ```
-
+1. Crear proyecto angular:
+    + $ ng new paises
+::: tip Nota
+Para crear proyecto angular con service worker:
+```
+$ ng new paises --service-worker
+```
+:::
 
 ### 145. Rutas de nuestra aplicación
-6 min
-Reproducir
 ### 146. Servicio y manejo de información - Agregar interfaz y URL
-10 min
-Reproducir
++ **[pais.interface.ts](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion12/pais.interface.ts)**.
++ **[Restcountries API](https://restcountries.eu/#api-endpoints-language)**.
+
 ### 147. Página del país
-10 min
-Iniciar
++ **[pais.component.html](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion12/pais.component.html)**.
+
 ### 148. Documentación de @angular/pwa
-1 min
-Reproducir
++ Este es el paquete oficial de Angular para añadir funcionalidades de PWA en una aplicación de forma rápida, recuerden que pueden implementar el service worker como lo vieron en el curso, simplemente creándolo y luego añadiendolo a la aplicación de Angular terminada.
++ Este paquete automatiza varias cosas de las PWAs, pero todavía no cubre todo lo que vimos en el curso, es decisión suya si lo desean implementar con el @angular/pwa o manualmente.
++ Documentación:
+    [@angular/pwa - documentación oficial](https://angular.io/guide/service-worker-config)
+
 ### 149. ng add @angular/pwa
-9 min
-Reproducir
 ### 150. Configuraciones en el archivo ngsw-config.json
-12 min
-Iniciar
 ### 151. Código fuente de la sección
-1 min
-Iniciar
++ **[Código fuente](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion12/13-paises.zip)**.
 
 
 ## Sección 13: Cierre del curso
