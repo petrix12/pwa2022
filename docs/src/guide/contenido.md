@@ -4720,15 +4720,716 @@ El APP SHELL esto lo necesario que necesita una aplicación para que funcione, c
 ### 128. Redireccionando desde la notificación
 ### 129. Borrar suscripciones que ya no son válidas
 ### 130. Código fuente de la sección
-+ **[Código fuente](https://github.com/petrix12/pwa2022/blob/main/recursos/recursos/seccion11/11-twittor-con-push.zip)**.
++ **[Código fuente](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion11/11-twittor-con-push.zip)**.
 
 
 ## Sección 11: Recursos Nativos
 ### 131. Introducción a la sección
+### 132. Temas puntuales de la sección
++ Aquí vamos a trabajar con recursos nativos que los dispositivos móviles tienen acceso. También comprenderemos cómo funciona la nueva ShareAPI, que aunque en este momento sólo funciona en Chrome para Android, pronto será aceptada por otros navegadores.
+
+### 133. Inicio del proyecto - Recursos Nativos
+1. Iniciar proyecto tomando como base el siguiente archivo **[12-twittor-recursos-nativos-inicio.zip](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion11/12-twittor-recursos-nativos-inicio.zip)**.
+
+### 134. Uso de la Geolocalización
+1. Modificar **12-twittor-recursos-nativos\public\js\app.js**:
+    ```js
+    var url = window.location.href;
+    var swLocation = '/twittor/sw.js';
+    var swReg;
+
+    if ( navigator.serviceWorker ) {
+        if ( url.includes('localhost') ) {
+            swLocation = '/sw.js';
+        }
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register( swLocation ).then( function(reg){
+                swReg = reg;
+                swReg.pushManager.getSubscription().then( verificaSuscripcion );
+            });
+        });
+    }
+
+    // Referencias de jQuery
+    var googleMapKey = 'AIzaSyA5mjCwx1TRLuBAjwQw84WE6h5ErSe7Uj8';
+    // Google Maps llaves alternativas - desarrollo
+    // AIzaSyDyJPPlnIMOLp20Ef1LlTong8rYdTnaTXM
+    // AIzaSyDzbQ_553v-n8QNs2aafN9QaZbByTyM7gQ
+    // AIzaSyA5mjCwx1TRLuBAjwQw84WE6h5ErSe7Uj8
+    // AIzaSyCroCERuudf2z02rCrVa6DTkeeneQuq8TA
+    // AIzaSyBkDYSVRVtQ6P2mf2Xrq0VBjps8GEcWsLU
+    // AIzaSyAu2rb0mobiznVJnJd6bVb5Bn2WsuXP2QI
+    // AIzaSyAZ7zantyAHnuNFtheMlJY1VvkRBEjvw9Y
+    // AIzaSyDSPDpkFznGgzzBSsYvTq_sj0T0QCHRgwM
+    // AIzaSyD4YFaT5DvwhhhqMpDP2pBInoG8BTzA9JY
+    // AIzaSyAbPC1F9pWeD70Ny8PHcjguPffSLhT-YF8
+    var titulo      = $('#titulo');
+    var nuevoBtn    = $('#nuevo-btn');
+    var salirBtn    = $('#salir-btn');
+    var cancelarBtn = $('#cancel-btn');
+    var postBtn     = $('#post-btn');
+    var avatarSel   = $('#seleccion');
+    var timeline    = $('#timeline');
+    var modal       = $('#modal');
+    var modalAvatar = $('#modal-avatar');
+    var avatarBtns  = $('.seleccion-avatar');
+    var txtMensaje  = $('#txtMensaje');
+    var btnActivadas    = $('.btn-noti-activadas');
+    var btnDesactivadas = $('.btn-noti-desactivadas');
+    var btnLocation      = $('#location-btn');
+    var modalMapa        = $('.modal-mapa');
+    var btnTomarFoto     = $('#tomar-foto-btn');
+    var btnPhoto         = $('#photo-btn');
+    var contenedorCamara = $('.camara-contenedor');
+    var lat  = null;
+    var lng  = null; 
+    var foto = null; 
+    // El usuario, contiene el ID del héroe seleccionado
+    var usuario;
+
+    // Init de la camara class
+    // document.getElementById('player');
+    const camara = new Camara( $('#player')[0] );
+
+    // ===== Codigo de la aplicación
+    function crearMensajeHTML(mensaje, personaje, lat, lng, foto) {
+        // console.log(mensaje, personaje, lat, lng);
+        var content =`
+        <li class="animated fadeIn fast"
+            data-user="${ personaje }"
+            data-mensaje="${ mensaje }"
+            data-tipo="mensaje">
+            <div class="avatar">
+                <img src="img/avatars/${ personaje }.jpg">
+            </div>
+            <div class="bubble-container">
+                <div class="bubble">
+                    <h3>@${ personaje }</h3>
+                    <br/>
+                    ${ mensaje }
+                    `;
+        if ( foto ) {
+            content += `
+                    <br>
+                    <img class="foto-mensaje" src="${ foto }">
+            `;
+        } 
+        content += `</div>        
+                    <div class="arrow"></div>
+                </div>
+            </li>
+        `;
+        // si existe la latitud y longitud, 
+        // llamamos la funcion para crear el mapa
+        if ( lat ) {
+            crearMensajeMapa( lat, lng, personaje );
+        }
+        // Borramos la latitud y longitud por si las usó
+        lat = null;
+        lng = null;
+        $('.modal-mapa').remove();
+        timeline.prepend(content);
+        cancelarBtn.click();
+    }
+
+    function crearMensajeMapa(lat, lng, personaje) {
+        let content = `
+        <li class="animated fadeIn fast"
+            data-tipo="mapa"
+            data-user="${ personaje }"
+            data-lat="${ lat }"
+            data-lng="${ lng }">
+                    <div class="avatar">
+                        <img src="img/avatars/${ personaje }.jpg">
+                    </div>
+                    <div class="bubble-container">
+                        <div class="bubble">
+                            <iframe
+                                width="100%"
+                                height="250"
+                                frameborder="0" style="border:0"
+                                src="https://www.google.com/maps/embed/v1/view?key=${ googleMapKey }&center=${ lat },${ lng }&zoom=17" allowfullscreen>
+                                </iframe>
+                        </div>
+                        
+                        <div class="arrow"></div>
+                    </div>
+                </li> 
+        `;
+        timeline.prepend(content);
+    }
+
+    // Globals
+    function logIn( ingreso ) {
+        if ( ingreso ) {
+            nuevoBtn.removeClass('oculto');
+            salirBtn.removeClass('oculto');
+            timeline.removeClass('oculto');
+            avatarSel.addClass('oculto');
+            modalAvatar.attr('src', 'img/avatars/' + usuario + '.jpg');
+        } else {
+            nuevoBtn.addClass('oculto');
+            salirBtn.addClass('oculto');
+            timeline.addClass('oculto');
+            avatarSel.removeClass('oculto');
+            titulo.text('Seleccione Personaje');
+        }
+    }
+
+    // Seleccion de personaje
+    avatarBtns.on('click', function() {
+        usuario = $(this).data('user');
+        titulo.text('@' + usuario);
+        logIn(true);
+    });
+
+    // Boton de salir
+    salirBtn.on('click', function() {
+        logIn(false);
+    });
+
+    // Boton de nuevo mensaje
+    nuevoBtn.on('click', function() {
+        modal.removeClass('oculto');
+        modal.animate({ 
+            marginTop: '-=1000px',
+            opacity: 1
+        }, 200 );
+    });
+
+    // Boton de cancelar mensaje
+    cancelarBtn.on('click', function() {
+        if ( !modal.hasClass('oculto') ) {
+            modal.animate({ 
+                marginTop: '+=1000px',
+                opacity: 0
+            }, 200, function() {
+                modal.addClass('oculto');
+                modalMapa.addClass('oculto');
+                txtMensaje.val('');
+            });
+        }
+    });
+
+    // Boton de enviar mensaje
+    postBtn.on('click', function() {
+        var mensaje = txtMensaje.val();
+        if ( mensaje.length === 0 ) {
+            cancelarBtn.click();
+            return;
+        }
+        var data = {
+            mensaje: mensaje,
+            user: usuario,
+            lat: lat,
+            lng: lng,
+            foto: foto
+        };
+        fetch('api', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify( data )
+        })
+        .then( res => res.json() )
+        .then( res => console.log( 'app.js', res ))
+        .catch( err => console.log( 'app.js error:', err ));
+        crearMensajeHTML( mensaje, usuario, lat, lng, foto ); 
+        foto = null;
+    });
+
+    // Obtener mensajes del servidor
+    function getMensajes() {
+        fetch('api')
+            .then( res => res.json() )
+            .then( posts => {
+                console.log(posts);
+                posts.forEach( post => 
+                    crearMensajeHTML( post.mensaje, post.user, post.lat, post.lng, post.foto ));
+            });
+    }
+
+    getMensajes();
+
+    // Detectar cambios de conexión
+    function isOnline() {
+        if ( navigator.onLine ) {
+            // tenemos conexión
+            // console.log('online');
+            $.mdtoast('Online', {
+                interaction: true,
+                interactionTimeout: 1000,
+                actionText: 'OK!'
+            });
+        } else{
+            // No tenemos conexión
+            $.mdtoast('Offline', {
+                interaction: true,
+                actionText: 'OK',
+                type: 'warning'
+            });
+        }
+    }
+
+    window.addEventListener('online', isOnline );
+    window.addEventListener('offline', isOnline );
+
+    isOnline();
+
+    // Notificaciones
+    function verificaSuscripcion( activadas ) {
+        if ( activadas ) {    
+            btnActivadas.removeClass('oculto');
+            btnDesactivadas.addClass('oculto');
+        } else {
+            btnActivadas.addClass('oculto');
+            btnDesactivadas.removeClass('oculto');
+        }
+    }
+
+    function enviarNotificacion() {
+        const notificationOpts = {
+            body: 'Este es el cuerpo de la notificación',
+            icon: 'img/icons/icon-72x72.png'
+        };
+        const n = new Notification('Hola Mundo', notificationOpts);
+        n.onclick = () => {
+            console.log('Click');
+        };
+    }
+
+    function notificarme() {
+        if ( !window.Notification ) {
+            console.log('Este navegador no soporta notificaciones');
+            return;
+        }
+        if ( Notification.permission === 'granted' ) {   
+            // new Notification('Hola Mundo! - granted');
+            enviarNotificacion();
+        } else if ( Notification.permission !== 'denied' || Notification.permission === 'default' )  {
+            Notification.requestPermission( function( permission ) {
+                console.log( permission );
+                if ( permission === 'granted' ) {
+                    // new Notification('Hola Mundo! - pregunta');
+                    enviarNotificacion();
+                }
+            });
+        }
+    }
+
+    // notificarme();
+
+    // Get Key
+    function getPublicKey() {
+        // fetch('api/key')
+        //     .then( res => res.text())
+        //     .then( console.log );
+        return fetch('api/key')
+            .then( res => res.arrayBuffer())
+            // returnar arreglo, pero como un Uint8array
+            .then( key => new Uint8Array(key) );
+    }
+
+    // getPublicKey().then( console.log );
+    btnDesactivadas.on( 'click', function() {
+        if ( !swReg ) return console.log('No hay registro de SW');
+        getPublicKey().then( function( key ) {
+            swReg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: key
+            })
+            .then( res => res.toJSON() )
+            .then( suscripcion => {
+                // console.log(suscripcion);
+                fetch('api/subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify( suscripcion )
+                })
+                .then( verificaSuscripcion )
+                .catch( cancelarSuscripcion );
+            });
+        });
+    });
+
+    function cancelarSuscripcion() {
+        swReg.pushManager.getSubscription().then( subs => {
+            subs.unsubscribe().then( () =>  verificaSuscripcion(false) );
+        });
+    }
+
+    btnActivadas.on( 'click', function() {
+        cancelarSuscripcion();
+    });
+
+    // Crear mapa en el modal
+    function mostrarMapaModal(lat, lng) {
+        $('.modal-mapa').remove();
+        var content = `
+            <div class="modal-mapa">
+                <iframe
+                    width="100%"
+                    height="250"
+                    frameborder="0"
+                    src="https://www.google.com/maps/embed/v1/view?key=${ googleMapKey }&center=${ lat },${ lng }&zoom=17" allowfullscreen>
+                    </iframe>
+            </div>
+        `;
+        modal.append( content );
+    }
+
+    // Sección 11 - Recursos Nativos
+    // Obtener la geolocalización
+    btnLocation.on('click', () => {
+        // console.log('Botón geolocalización');
+        $.mdtoast('Cargando mapa...', {
+            interaction: true,
+            interactionTimeout: 2000,
+            actionText: 'Ok!'
+        });
+        navigator.geolocation.getCurrentPosition( pos => {
+            console.log( pos );
+            mostrarMapaModal( pos.coords.latitude, pos.coords.longitude );
+            lat = pos.coords.latitude;
+            lng = pos.coords.longitude;
+        });
+    });
+
+    // Boton de la camara
+    // usamos la funcion de fleca para prevenir
+    // que jQuery me cambie el valor del this
+    btnPhoto.on('click', () => {
+        console.log('Inicializar camara');
+        contenedorCamara.removeClass('oculto');
+        camara.encender();
+    });
+
+    // Boton para tomar la foto
+    btnTomarFoto.on('click', () => {
+        console.log('Botón tomar foto');
+        foto = camara.tomarFoto();
+        camara.apagar();
+        // console.log(foto);
+    });
+
+    // Share API
+    // if ( navigator.share ) {
+    //     console.log('Navegador lo soporta');
+    // } else {
+    //     console.log('Navegador NO lo soporta');
+    // }
+
+    timeline.on('click', 'li', function() {
+        // console.log(  $(this)  );
+        let tipo    = $(this).data('tipo');
+        let lat     = $(this).data('lat');
+        let lng     = $(this).data('lng');
+        let mensaje = $(this).data('mensaje');
+        let user    = $(this).data('user');
+        console.log({ tipo, lat, lng, mensaje, user });
+        const shareOpts = {
+            title: user,
+            text: mensaje
+        };
+        if (tipo === 'mapa') {
+            shareOpts.text = 'Mapa';
+            shareOpts.url  = `https://www.google.com/maps/@${ lat },${ lng },15z`;
+        }
+        navigator.share(shareOpts)
+            .then(() => console.log('Successful share'))
+            .catch((error) => console.log('Error sharing', error));
+    });    
+    ```
+
+### 135. POST con las coordenadas y el mapa
+### 136. Mostrar video de la cámara
+1. Crear **12-twittor-recursos-nativos\public\js\camara-class.js**:
+    ```js
+    class Camara {
+        constructor( videoNode ) {
+            this.videoNode = videoNode;
+            console.log('Camara Class init');
+        }
+        encender() {
+            navigator.mediaDevices.getUserMedia({
+                audio: false,
+                video: { width: 300, height: 300 }
+            }).then( stream => {
+                this.videoNode.srcObject = stream;
+                this.stream = stream;
+            });
+        }
+        apagar() {
+            this.videoNode.pause();
+            if ( this.stream ) {
+                this.stream.getTracks()[0].stop();
+            }
+        }
+        tomarFoto() {
+            // Crear un elemento canvas para renderizr ahí la foto
+            let canvas = document.createElement('canvas');
+            // Colocar las dimensiones igual al elemento del video
+            canvas.setAttribute('width', 300 );
+            canvas.setAttribute('height', 300 );
+            // obtener el contexto del canvas
+            let context = canvas.getContext('2d'); // una simple imagen
+            // dibujar, la imagen dentro del canvas
+            context.drawImage( this.videoNode, 0, 0, canvas.width, canvas.height );
+            this.foto = context.canvas.toDataURL();
+            // limpieza
+            canvas  = null;
+            context = null;
+            return this.foto;
+        }
+    }    
+    ```
+2. Modificar **12-twittor-recursos-nativos\public\sw.js**:
+    ```js
+    // imports
+    importScripts('https://cdn.jsdelivr.net/npm/pouchdb@7.0.0/dist/pouchdb.min.js');
+    importScripts('js/sw-db.js');
+    importScripts('js/sw-utils.js');
+
+    const STATIC_CACHE    = 'static-v3';
+    const DYNAMIC_CACHE   = 'dynamic-v1';
+    const INMUTABLE_CACHE = 'inmutable-v1';
+
+    const APP_SHELL = [
+        '/',
+        'index.html',
+        'css/style.css',
+        'img/favicon.ico',
+        'img/avatars/hulk.jpg',
+        'img/avatars/ironman.jpg',
+        'img/avatars/spiderman.jpg',
+        'img/avatars/thor.jpg',
+        'img/avatars/wolverine.jpg',
+        'js/app.js',
+        'js/camara-class.js',
+        'js/sw-utils.js',
+        'js/libs/plugins/mdtoast.min.js',
+        'js/libs/plugins/mdtoast.min.css'
+    ];
+
+    const APP_SHELL_INMUTABLE = [
+        'https://fonts.googleapis.com/css?family=Quicksand:300,400',
+        'https://fonts.googleapis.com/css?family=Lato:400,300',
+        'https://use.fontawesome.com/releases/v5.3.1/css/all.css',
+        'https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.css',
+        'https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js',
+        'https://cdn.jsdelivr.net/npm/pouchdb@7.0.0/dist/pouchdb.min.js'
+    ];
+
+    self.addEventListener('install', e => {
+        const cacheStatic = caches.open( STATIC_CACHE ).then(cache => 
+            cache.addAll( APP_SHELL ));
+        const cacheInmutable = caches.open( INMUTABLE_CACHE ).then(cache => 
+            cache.addAll( APP_SHELL_INMUTABLE ));
+        e.waitUntil( Promise.all([ cacheStatic, cacheInmutable ])  );
+    });
+
+    self.addEventListener('activate', e => {
+        const respuesta = caches.keys().then( keys => {
+            keys.forEach( key => {
+                if (  key !== STATIC_CACHE && key.includes('static') ) {
+                    return caches.delete(key);
+                }
+                if (  key !== DYNAMIC_CACHE && key.includes('dynamic') ) {
+                    return caches.delete(key);
+                }
+            });
+        });
+        e.waitUntil( respuesta );
+    });
+
+    self.addEventListener( 'fetch', e => {
+        let respuesta;
+        if ( e.request.url.includes('/api') ) {
+            // return respuesta????
+            respuesta = manejoApiMensajes( DYNAMIC_CACHE, e.request );
+        } else {
+            respuesta = caches.match( e.request ).then( res => {
+                if ( res ) {
+                    actualizaCacheStatico( STATIC_CACHE, e.request, APP_SHELL_INMUTABLE );
+                    return res;
+                } else {
+                    return fetch( e.request ).then( newRes => {
+                        return actualizaCacheDinamico( DYNAMIC_CACHE, e.request, newRes );
+                    });
+                }
+            });
+        }
+        e.respondWith( respuesta );
+    });
+
+    // tareas asíncronas
+    self.addEventListener('sync', e => {
+        console.log('SW: Sync');
+        if ( e.tag === 'nuevo-post' ) {
+            // postear a BD cuando hay conexión
+            const respuesta = postearMensajes();   
+            e.waitUntil( respuesta );
+        }
+    });
+
+    // Escuchar PUSH
+    self.addEventListener('push', e => {
+        // console.log(e);
+        const data = JSON.parse( e.data.text() );
+        // console.log(data);
+        const title = data.titulo;
+        const options = {
+            body: data.cuerpo,
+            // icon: 'img/icons/icon-72x72.png',
+            icon: `img/avatars/${ data.usuario }.jpg`,
+            badge: 'img/favicon.ico',
+            image: 'https://vignette.wikia.nocookie.net/marvelcinematicuniverse/images/5/5b/Torre_de_los_Avengers.png/revision/latest?cb=20150626220613&path-prefix=es',
+            vibrate: [125,75,125,275,200,275,125,75,125,275,200,600,200,600],
+            openUrl: '/',
+            data: {
+                // url: 'https://google.com',
+                url: '/',
+                id: data.usuario
+            },
+            actions: [
+                {
+                    action: 'thor-action',
+                    title: 'Thor',
+                    icon: 'img/avatar/thor.jpg'
+                },
+                {
+                    action: 'ironman-action',
+                    title: 'Ironman',
+                    icon: 'img/avatar/ironman.jpg'
+                }
+            ]
+        };
+        e.waitUntil( self.registration.showNotification( title, options) );
+    });
+
+    // Cierra la notificacion
+    self.addEventListener('notificationclose', e => {
+        console.log('Notificación cerrada', e);
+    });
+
+    self.addEventListener('notificationclick', e => {
+        const notificacion = e.notification;
+        const accion = e.action;
+        console.log({ notificacion, accion });
+        // console.log(notificacion);
+        // console.log(accion);
+        const respuesta = clients.matchAll()
+            .then(clientes => {
+                let cliente = clientes.find( c => {
+                    return c.visibilityState === 'visible';
+                });
+                if ( cliente !== undefined ) {
+                    cliente.navigate( notificacion.data.url );
+                    cliente.focus();
+                } else {
+                    clients.openWindow( notificacion.data.url );
+                }
+                return notificacion.close();
+            });
+        e.waitUntil( respuesta );
+    });    
+    ```
+
+### 137. Nota: Camara posterior
++ Documentación MDN - Media Devices: Este artículo de MDN, les ayudará a tener mejor control de la cámara en sí:
+    + [Media Devices](https://developer.mozilla.org/es/docs/Web/API/MediaDevices/getUserMedia).
+    + También incluye cómo utilizar por defecto la cámara posterior.
+
+### 138. Tomar Foto y apagar cámara
+### 139. Mostrar la fotografía como un mensaje
+1. Modificar **12-twittor-recursos-nativos\server\routes.js**:
+    ```js
+    // Routes.js - Módulo de rutas
+    const express = require('express');
+    const router = express.Router();
+    const push = require('./push');
+
+    const mensajes = [
+        {
+            _id: 'XXX',
+            user: 'spiderman',
+            mensaje: 'Hola Mundo'
+        }
+    ];
+
+    // Get mensajes
+    router.get('/', function (req, res) {
+        // res.json('Obteniendo mensajes');
+        res.json( mensajes );
+    });
+
+    // Post mensaje
+    router.post('/', function (req, res) {
+        // console.log( req.body.lat );
+        // console.log( req.body.lng );
+        const mensaje = {
+            mensaje: req.body.mensaje,
+            user: req.body.user,
+            lat: req.body.lat,
+            lng: req.body.lng,
+            foto: req.body.foto
+        };
+        mensajes.push( mensaje );
+        console.log(mensajes);
+        res.json({
+            ok: true,
+            mensaje
+        });
+    });
+
+    // Almacenar la suscripción
+    router.post('/subscribe', (req, res) => {
+        const suscripcion = req.body;
+        push.addSubscription( suscripcion );
+        res.json('subscribe');
+    });
+
+    // Almacenar la suscripción
+    router.get('/key', (req, res) => {
+        const key = push.getKey();
+        res.send(key);
+    });
+
+    // Envar una notificación PUSH a las personas
+    // que nosotros queramos
+    // ES ALGO que se controla del lado del server
+    router.post('/push', (req, res) => {
+        const post = {
+            titulo: req.body.titulo,
+            cuerpo: req.body.cuerpo,
+            usuario: req.body.usuario
+        };
+        push.sendPush( post );
+        res.json( post );
+    });
+
+    module.exports = router;    
+    ```
+
+### 140. Share API
++ **[Integrate with the OS sharing UI with the Web Share API](https://web.dev/web-share)**.
++ **[Can I use share](https://caniuse.com/?search=share)**.
+
+### 141. Código fuente de la sección
++ **[Código fuente](https://github.com/petrix12/pwa2022/blob/main/recursos/seccion11/12-twittor-recursos-nativos-fin.zip)**.
+
+
+## Sección 12: Bonus: @angular/pwa
+### 142. Introducción a la sección
 1 min
 Iniciar
-
-
+### 143. Temas puntuales de la sección
+1 min
+Reproducir
+### 144. Inicio de proyecto - Angular PWA
+6 min
+Reproducir
 
 
 
@@ -4742,49 +5443,6 @@ Iniciar
     ```
 
 
-
-### 132. Temas puntuales de la sección
-1 min
-Reproducir
-### 133. Inicio del proyecto - Recursos Nativos
-7 min
-Reproducir
-### 134. Uso de la Geolocalización
-6 min
-Reproducir
-### 135. POST con las coordenadas y el mapa
-6 min
-Reproducir
-### 136. Mostrar video de la cámara
-11 min
-Iniciar
-### 137. Nota: Camara posterior
-1 min
-Reproducir
-### 138. Tomar Foto y apagar cámara
-9 min
-Reproducir
-### 139. Mostrar la fotografía como un mensaje
-4 min
-Reproducir
-### 140. Share API
-12 min
-Iniciar
-### 141. Código fuente de la sección
-1 min
-Reproducir
-
-
-## Sección 12: Bonus: @angular/pwa
-### 142. Introducción a la sección
-1 min
-Iniciar
-### 143. Temas puntuales de la sección
-1 min
-Reproducir
-### 144. Inicio de proyecto - Angular PWA
-6 min
-Reproducir
 ### 145. Rutas de nuestra aplicación
 6 min
 Reproducir
